@@ -26,5 +26,7 @@ No bloated third-party software. No unnecessary GUIs. Just pure, safe `Get-CimIn
 If you are on a machine behind a corporate proxy (like in our clinic), run this command in an **Administrator PowerShell** to launch QuickFIX directly from the cloud:
 
 $wc = New-Object Net.WebClient
+
 $wc.Proxy.Credentials = [Net.CredentialCache]::DefaultNetworkCredentials
+
 IEX $wc.DownloadString('https://raw.githubusercontent.com/emanoeI/QuickFIX/refs/heads/main/QuickFIX.ps1')
