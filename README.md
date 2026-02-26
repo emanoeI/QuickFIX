@@ -1,6 +1,6 @@
 <h1 align="center">🛠 QuickFix</h1>
 <h3 align="center">Corporate Support & Diagnostic Script</h3>
-<p align="center"><strong>Clivalemais – IT Department</strong></p>
+<p align="center"><strong>coded by emanoel peres :)</strong></p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/PowerShell-5.0+-5391FE?logo=powershell&logoColor=white" />
@@ -15,16 +15,15 @@
 <h2>📌 Purpose</h2>
 
 <p>
-<strong>QuickFix</strong> is a corporate PowerShell-based tool developed to standardize IT support procedures,
-reduce ticket resolution time, and ensure full traceability of technical interventions performed within Clivalemais.
+<strong>QuickFix</strong> is a corporate PowerShell-based tool designed to standardize IT support procedures,
+reduce ticket resolution time, and ensure full traceability of technical interventions performed within Organization.
 </p>
 
 <p>
-The script runs natively on Windows environments and does not require installation or third-party dependencies.
+The script runs natively on Windows systems and requires no installation.
 </p>
 
-<h3>Core Design Principles</h3>
-
+<h3>Core Principles</h3>
 <ul>
   <li>Operational standardization</li>
   <li>Minimal system intervention</li>
@@ -32,21 +31,17 @@ The script runs natively on Windows environments and does not require installati
   <li>Modular and isolated execution</li>
 </ul>
 
-<p>
-No potentially impactful action is executed without explicit technician confirmation.
-</p>
+<p>No action with potential impact executes without explicit technician confirmation.</p>
 
 <hr/>
 
-<h2>🏗 Technical Architecture</h2>
-
+<h2> Technical Architecture</h2>
 <p>
-QuickFix is structured into <strong>6 independent modules</strong>, accessible through a numeric terminal menu.
-Each module operates in isolation to reduce operational risk.
+QuickFix consists of <strong>6 independent modules</strong>, accessible via a numeric menu interface.
+Each module runs in isolation to reduce operational risk.
 </p>
 
 <h3>Execution Flow</h3>
-
 <ol>
   <li>Technician identification at session start</li>
   <li>Automatic registration in generated reports</li>
@@ -57,121 +52,50 @@ Each module operates in isolation to reduce operational risk.
 <hr/>
 
 <h2>🔎 Operational Modules</h2>
-
 <h3>1️⃣ Hardware Diagnostics</h3>
-
-<p>Performs a complete system information scan without modifying any configuration.</p>
-
-<strong>Data Collected:</strong>
-
 <ul>
-  <li>Operating System</li>
-  <li>CPU</li>
-  <li>Motherboard</li>
-  <li>RAM modules (individual detection)</li>
-  <li>Video controllers</li>
-  <li>Storage devices (SSD/HDD + free space analysis)</li>
+  <li>Collects OS, CPU, motherboard, RAM, video controllers, and storage info (read-only)</li>
+  <li>Detects SSD/HDD and free disk space, with alert thresholds</li>
 </ul>
-
-<strong>Technical Logic:</strong>
-
-<ul>
-  <li>WMI/CIM queries (Win32_OperatingSystem, Win32_Processor, etc.)</li>
-  <li>Automatic SSD/HDD detection via SpindleSpeed</li>
-  <li>Free disk space percentage calculation with internal alert thresholds</li>
-</ul>
-
-<p><strong>Risk Level:</strong> Read-only</p>
-
-<hr/>
 
 <h3>2️⃣ Network Status</h3>
-
-<p>Provides structured connectivity diagnostics.</p>
-
-<strong>Functions:</strong>
-
 <ul>
-  <li>Active network adapters</li>
-  <li>IP configuration (DHCP or static)</li>
-  <li>DNS servers</li>
-  <li>Gateway connectivity test</li>
-  <li>External connectivity test (8.8.8.8)</li>
-  <li>DNS resolution validation</li>
+  <li>Lists active network adapters, IP/DNS, gateway connectivity</li>
+  <li>Performs DNS resolution tests</li>
 </ul>
 
-<p><strong>Risk Level:</strong> Read-only</p>
-
-<hr/>
-
 <h3>3️⃣ Printer Diagnostics & Repair</h3>
-
 <ul>
   <li>Status and queue inspection</li>
   <li>Port and IP mapping</li>
-  <li>Printer connectivity test</li>
-  <li>Spooler service restart</li>
-  <li>Manual queue cleanup (.SPL / .SHD removal)</li>
-  <li>Set default printer</li>
-  <li>Custom test page generation</li>
-  <li>Force printer online state</li>
+  <li>Connectivity tests and spooler operations</li>
+  <li>Default printer settings, test page generation, force online</li>
 </ul>
 
-<p>Some operations may interrupt active print jobs and require confirmation.</p>
-
-<hr/>
-
 <h3>4️⃣ RAM Optimization</h3>
-
 <ul>
-  <li>Global memory cleanup via EmptyWorkingSet</li>
-  <li>Selective high-consumption process reduction</li>
+  <li>Global memory cleanup and selective high-consumption process reduction</li>
   <li>Permanent Chrome memory-saving flags</li>
 </ul>
 
-<p><strong>Risk Level:</strong> Light impact (temporary performance adjustment)</p>
-
-<hr/>
-
 <h3>5️⃣ Network Repair</h3>
-
 <ul>
-  <li>Full network stack repair (Release / Renew / Winsock / RegisterDNS)</li>
-  <li>DNS cache flush</li>
-  <li>Layered connectivity test</li>
-  <li>Network adapter reset</li>
+  <li>Full network stack repair, DNS flush, connectivity tests, adapter reset</li>
 </ul>
-
-<p>May temporarily interrupt active connection.</p>
-
-<hr/>
 
 <h3>6️⃣ Windows System Repair</h3>
-
 <ul>
-  <li>DISM /RestoreHealth</li>
-  <li>SFC /Scannow</li>
-  <li>DISM /StartComponentCleanup</li>
+  <li>DISM RestoreHealth, SFC /Scannow, StartComponentCleanup</li>
+  <li>Requires reboot; does not delete user data</li>
 </ul>
-
-<p>
-Average duration: 10–20 minutes<br/>
-Requires reboot<br/>
-Does not remove user data
-</p>
 
 <hr/>
 
 <h2>📄 Reporting System</h2>
-
 <p>
-Each executed action generates a <code>.txt</code> report stored at:
+Each action generates a <code>.txt</code> report in:
+<pre>C:\services\relatorios</pre>
 </p>
-
-<pre><code>C:\services\relatorios</code></pre>
-
-<strong>Logged Information:</strong>
-
 <ul>
   <li>Date and time</li>
   <li>Technician name</li>
@@ -183,35 +107,43 @@ Each executed action generates a <code>.txt</code> report stored at:
 
 <hr/>
 
-<h2>🔐 Risk Classification</h2>
+<h2>▶ Execution Options</h2>
+<p>Choose the method that fits your network and security policies:</p>
 
-<table>
-  <tr>
-    <th>Level</th>
-    <th>Description</th>
-    <th>Examples</th>
-  </tr>
-  <tr>
-    <td>Level 1</td>
-    <td>No impact</td>
-    <td>Diagnostics</td>
-  </tr>
-  <tr>
-    <td>Level 2</td>
-    <td>Light impact</td>
-    <td>Spooler restart, DNS flush</td>
-  </tr>
-  <tr>
-    <td>Level 3</td>
-    <td>Structured repair</td>
-    <td>DISM, SFC, Winsock reset</td>
-  </tr>
-</table>
+<h3>1️⃣ Direct in-memory (proxy-friendly)</h3>
+<pre><code>$wc = New-Object Net.WebClient
+$wc.Proxy.Credentials = [Net.CredentialCache]::DefaultNetworkCredentials
+IEX $wc.DownloadString('https://raw.githubusercontent.com/emanoeI/QuickFIX/main/QuickFIX.ps1')
+</code></pre>
+
+<h3>2️⃣ Download and execute locally (safer, auditable)</h3>
+<pre><code>$wc = New-Object Net.WebClient
+$wc.Proxy.Credentials = [Net.CredentialCache]::DefaultNetworkCredentials
+$wc.DownloadFile('https://raw.githubusercontent.com/emanoeI/QuickFIX/main/QuickFIX.ps1', 'QuickFIX.ps1')
+powershell -ExecutionPolicy Bypass -File .\QuickFIX.ps1
+</code></pre>
+
+<h3>3️⃣ Short method via Invoke-RestMethod</h3>
+<pre><code>powershell -ExecutionPolicy Bypass -Command "iex (irm https://raw.githubusercontent.com/emanoeI/QuickFIX/main/QuickFIX.ps1 -Proxy $null)"
+</code></pre>
+
+<h3>4️⃣ Download with SHA256 verification (enterprise-safe)</h3>
+<pre><code>$wc = New-Object Net.WebClient
+$wc.Proxy.Credentials = [Net.CredentialCache]::DefaultNetworkCredentials
+$wc.DownloadFile('https://raw.githubusercontent.com/emanoeI/QuickFIX/main/QuickFIX.ps1', 'QuickFIX.ps1')
+$hash = Get-FileHash .\QuickFIX.ps1 -Algorithm SHA256
+if ($hash.Hash -eq 'INSERT_OFFICIAL_SHA256') {
+    powershell -ExecutionPolicy Bypass -File .\QuickFIX.ps1
+} else {
+    Write-Host "ERROR: File hash mismatch! Aborting execution."
+}
+</code></pre>
+
+<p><strong>Tip:</strong> Replace <code>INSERT_OFFICIAL_SHA256</code> with the verified hash of the official script.</p>
 
 <hr/>
 
 <h2>⚙ Technical Requirements</h2>
-
 <ul>
   <li>Windows 10 or higher</li>
   <li>Local administrator privileges</li>
@@ -221,17 +153,8 @@ Each executed action generates a <code>.txt</code> report stored at:
 
 <hr/>
 
-<h2>▶ Execution</h2>
-
-<pre><code>powershell -ExecutionPolicy Bypass -File quickfix.ps1</code></pre>
-
-<hr/>
-
-<h2>📌 Final Notes</h2>
-
+<h2>📌 Notes</h2>
 <p>
-QuickFix does not replace technical expertise.  
-It standardizes operational procedures, accelerates diagnostics, and strengthens IT governance practices.
+QuickFix standardizes IT operations, accelerates diagnostics, and ensures traceability.
+Restricted to internal use by the  IT Department.
 </p>
-
-<p><strong>Restricted for internal use by the Clivalemais IT Department.</strong></p>
