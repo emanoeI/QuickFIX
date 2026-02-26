@@ -1,32 +1,237 @@
-# 🛠️ QuickFIX
+<h1 align="center">🛠 QuickFix</h1>
+<h3 align="center">Corporate Support & Diagnostic Script</h3>
+<p align="center"><strong>Clivalemais – IT Department</strong></p>
 
-> *Because nobody has time to click through 15 Windows menus just to check a MAC address or see if a RAM stick died.*
+<p align="center">
+  <img src="https://img.shields.io/badge/PowerShell-5.0+-5391FE?logo=powershell&logoColor=white" />
+  <img src="https://img.shields.io/badge/Windows-10%2B-0078D6?logo=windows&logoColor=white" />
+  <img src="https://img.shields.io/badge/Status-Production-success" />
+  <img src="https://img.shields.io/badge/Scope-Internal-blue" />
+  <img src="https://img.shields.io/badge/License-Internal-red" />
+</p>
 
-Built in the IT trenches of a busy clinic, **QuickFIX** is a no-nonsense, native PowerShell panel designed to diagnose and troubleshoot daily Windows headaches. 
+<hr/>
 
-No bloated third-party software. No unnecessary GUIs. Just pure, safe `Get-CimInstance` queries and a terminal to get the job done fast.
+<h2>📌 Purpose</h2>
 
-## 📦 What's in the box (so far)?
+<p>
+<strong>QuickFix</strong> is a corporate PowerShell-based tool developed to standardize IT support procedures,
+reduce ticket resolution time, and ensure full traceability of technical interventions performed within Clivalemais.
+</p>
 
-* **Deep System Info (`Show-SystemInfo`):** Spits out the actual hardware specs without the Windows fluff. CPU cache, exact RAM module locators, Motherboard/BIOS details, storage partitions, and GPU status. 
-* **Network Diagnostics (`Show-NetworkInfo`):** Grabs your active Ethernet adapters, pulls the IPs, Subnets, and DNS, and automatically pings the default gateway so you don't have to open a second terminal window.
-* **The "Hold Up" Screen (`Rollback-Welcome`):** A mandatory prompt reminding you to create a System Restore point before messing with the machine. *(Note: The actual creation logic is currently a mockup, but the guilt-trip is real).*
-* **Built-in Receipts (`Write-Log`):** Logs all queries and any WMI/CIM errors silently to `QuickFix.log` in the same directory. If something breaks, you'll know why.
+<p>
+The script runs natively on Windows environments and does not require installation or third-party dependencies.
+</p>
 
-## ⚙️ Requirements
+<h3>Core Design Principles</h3>
 
-* Windows OS (Tested on modern builds).
-* PowerShell 5.1+
-* **Run as Administrator:** Seriously, just run it as Admin. Half the hardware queries will give you blank stares if you don't.
+<ul>
+  <li>Operational standardization</li>
+  <li>Minimal system intervention</li>
+  <li>Full action traceability</li>
+  <li>Modular and isolated execution</li>
+</ul>
 
-## 🚀 How to fire it up
+<p>
+No potentially impactful action is executed without explicit technician confirmation.
+</p>
 
-## 🚀 Quick Execution (Support Mode)
+<hr/>
 
-If you are on a machine behind a corporate proxy (like in our clinic), run this command in an **Administrator PowerShell** to launch QuickFIX directly from the cloud:
+<h2>🏗 Technical Architecture</h2>
 
-$wc = New-Object Net.WebClient
+<p>
+QuickFix is structured into <strong>6 independent modules</strong>, accessible through a numeric terminal menu.
+Each module operates in isolation to reduce operational risk.
+</p>
 
-$wc.Proxy.Credentials = [Net.CredentialCache]::DefaultNetworkCredentials
+<h3>Execution Flow</h3>
 
-IEX $wc.DownloadString('https://raw.githubusercontent.com/emanoeI/QuickFIX/refs/heads/main/QuickFIX.ps1')
+<ol>
+  <li>Technician identification at session start</li>
+  <li>Automatic registration in generated reports</li>
+  <li>Module execution based on ticket requirements</li>
+  <li>Automatic report generation after each action</li>
+</ol>
+
+<hr/>
+
+<h2>🔎 Operational Modules</h2>
+
+<h3>1️⃣ Hardware Diagnostics</h3>
+
+<p>Performs a complete system information scan without modifying any configuration.</p>
+
+<strong>Data Collected:</strong>
+
+<ul>
+  <li>Operating System</li>
+  <li>CPU</li>
+  <li>Motherboard</li>
+  <li>RAM modules (individual detection)</li>
+  <li>Video controllers</li>
+  <li>Storage devices (SSD/HDD + free space analysis)</li>
+</ul>
+
+<strong>Technical Logic:</strong>
+
+<ul>
+  <li>WMI/CIM queries (Win32_OperatingSystem, Win32_Processor, etc.)</li>
+  <li>Automatic SSD/HDD detection via SpindleSpeed</li>
+  <li>Free disk space percentage calculation with internal alert thresholds</li>
+</ul>
+
+<p><strong>Risk Level:</strong> Read-only</p>
+
+<hr/>
+
+<h3>2️⃣ Network Status</h3>
+
+<p>Provides structured connectivity diagnostics.</p>
+
+<strong>Functions:</strong>
+
+<ul>
+  <li>Active network adapters</li>
+  <li>IP configuration (DHCP or static)</li>
+  <li>DNS servers</li>
+  <li>Gateway connectivity test</li>
+  <li>External connectivity test (8.8.8.8)</li>
+  <li>DNS resolution validation</li>
+</ul>
+
+<p><strong>Risk Level:</strong> Read-only</p>
+
+<hr/>
+
+<h3>3️⃣ Printer Diagnostics & Repair</h3>
+
+<ul>
+  <li>Status and queue inspection</li>
+  <li>Port and IP mapping</li>
+  <li>Printer connectivity test</li>
+  <li>Spooler service restart</li>
+  <li>Manual queue cleanup (.SPL / .SHD removal)</li>
+  <li>Set default printer</li>
+  <li>Custom test page generation</li>
+  <li>Force printer online state</li>
+</ul>
+
+<p>Some operations may interrupt active print jobs and require confirmation.</p>
+
+<hr/>
+
+<h3>4️⃣ RAM Optimization</h3>
+
+<ul>
+  <li>Global memory cleanup via EmptyWorkingSet</li>
+  <li>Selective high-consumption process reduction</li>
+  <li>Permanent Chrome memory-saving flags</li>
+</ul>
+
+<p><strong>Risk Level:</strong> Light impact (temporary performance adjustment)</p>
+
+<hr/>
+
+<h3>5️⃣ Network Repair</h3>
+
+<ul>
+  <li>Full network stack repair (Release / Renew / Winsock / RegisterDNS)</li>
+  <li>DNS cache flush</li>
+  <li>Layered connectivity test</li>
+  <li>Network adapter reset</li>
+</ul>
+
+<p>May temporarily interrupt active connection.</p>
+
+<hr/>
+
+<h3>6️⃣ Windows System Repair</h3>
+
+<ul>
+  <li>DISM /RestoreHealth</li>
+  <li>SFC /Scannow</li>
+  <li>DISM /StartComponentCleanup</li>
+</ul>
+
+<p>
+Average duration: 10–20 minutes<br/>
+Requires reboot<br/>
+Does not remove user data
+</p>
+
+<hr/>
+
+<h2>📄 Reporting System</h2>
+
+<p>
+Each executed action generates a <code>.txt</code> report stored at:
+</p>
+
+<pre><code>C:\services\relatorios</code></pre>
+
+<strong>Logged Information:</strong>
+
+<ul>
+  <li>Date and time</li>
+  <li>Technician name</li>
+  <li>Machine name</li>
+  <li>IP address</li>
+  <li>Executed module</li>
+  <li>Operation result</li>
+</ul>
+
+<hr/>
+
+<h2>🔐 Risk Classification</h2>
+
+<table>
+  <tr>
+    <th>Level</th>
+    <th>Description</th>
+    <th>Examples</th>
+  </tr>
+  <tr>
+    <td>Level 1</td>
+    <td>No impact</td>
+    <td>Diagnostics</td>
+  </tr>
+  <tr>
+    <td>Level 2</td>
+    <td>Light impact</td>
+    <td>Spooler restart, DNS flush</td>
+  </tr>
+  <tr>
+    <td>Level 3</td>
+    <td>Structured repair</td>
+    <td>DISM, SFC, Winsock reset</td>
+  </tr>
+</table>
+
+<hr/>
+
+<h2>⚙ Technical Requirements</h2>
+
+<ul>
+  <li>Windows 10 or higher</li>
+  <li>Local administrator privileges</li>
+  <li>PowerShell 5.0 or higher</li>
+  <li>ExecutionPolicy set to Bypass</li>
+</ul>
+
+<hr/>
+
+<h2>▶ Execution</h2>
+
+<pre><code>powershell -ExecutionPolicy Bypass -File quickfix.ps1</code></pre>
+
+<hr/>
+
+<h2>📌 Final Notes</h2>
+
+<p>
+QuickFix does not replace technical expertise.  
+It standardizes operational procedures, accelerates diagnostics, and strengthens IT governance practices.
+</p>
+
+<p><strong>Restricted for internal use by the Clivalemais IT Department.</strong></p>
