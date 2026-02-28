@@ -25,6 +25,7 @@ $global:IPMaquina      = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { 
 $global:PastaLog       = "C:\services\relatorios"
 $global:ArquivoSessao  = ""
 $global:InicioSessao   = ""
+$KlingoPerfil = "" #  vazio para ser preenchido via menu
 
 # ==========================================================
 # SISTEMA DE RELATORIO POR SESSAO
@@ -116,6 +117,7 @@ function Close-Report {
 
 function Show-Intro {
     Clear-Host
+    # --- LOGO ASCII ---
     $lines = @(".----------------------------------------------------------------------------------------.
 |..#######.....##.....##....####.....######.....##....##....########....####....##.....##|
 |.##.....##....##.....##.....##.....##....##....##...##.....##...........##......##...##.|
@@ -137,6 +139,7 @@ function Show-Intro {
     Write-Host " [ONLINE]" -ForegroundColor $CN
     Start-Sleep -Milliseconds 200
 
+    # --- SEQUENCIA DE BOOT ---
     $boot = @(
         "  >> CARREGANDO MODULOS DE DIAGNOSTICO",
         "  >> VERIFICANDO PRIVILEGIOS DE ADMIN ",
@@ -150,26 +153,46 @@ function Show-Intro {
     }
     Start-Sleep -Milliseconds 400
 
-    # Identificacao do tecnico
+    # --- SISTEMA DE LOGIN INTEGRADO ---
+    $SenhaUniversal = "suporte" # Alterar senha
+    $Autenticado    = $false
+
     Write-Host ""
     Write-Host "  +======================================================+" -ForegroundColor $CP
-    Write-Host "  |              IDENTIFICACAO DO TECNICO                |" -ForegroundColor $CP
+    Write-Host "  |                IDENTIFICACAO E ACESSO                |" -ForegroundColor $CP
     Write-Host "  +======================================================+" -ForegroundColor $CP
+    
+    # 1. Identificação do Técnico
     do {
-        $global:NomeTecnico = Read-Host "`n  >> Seu nome"
+        $global:NomeTecnico = Read-Host "`n  >> Identidade do Tecnico"
     } while ($global:NomeTecnico -eq "")
 
-    # Inicia o log da sessao logo apos identificacao
+    # 2. Loop de Senha Invisível
+    while (-not $Autenticado) {
+        # -AsSecureString oculta a digitação no terminal
+        $secureInput = Read-Host "  >> Prezado $($global:NomeTecnico), insira a senha de acesso" -AsSecureString
+        
+        # Conversão necessária para comparar a senha
+        $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($secureInput)
+        $tentativa = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+
+        if ($tentativa -eq $SenhaUniversal) {
+            $Autenticado = $true
+            Write-Host "  [+] Acesso concedido." -ForegroundColor $CN
+        } else {
+            Write-Host "  [!] Senha incorreta." -ForegroundColor $CR
+        }
+    }
+
+    # Inicia o log da sessao apenas após o login
     Init-Report
 
     Write-Host ""
-    Write-Host "  Bem-vindo, $($global:NomeTecnico)!" -ForegroundColor $CN
-    Start-Sleep -Milliseconds 500
+    Write-Host "  Bem vindo, $($global:NomeTecnico)!" -ForegroundColor $CN
+    Start-Sleep -Milliseconds 1500
 }
 
-# ==========================================================
-# BARRA DE PROGRESSO
-# ==========================================================
+
 
 function Show-Progress {
     param([string]$Label = "Processando", [int]$DurationMs = 1200, [string]$Color = $CN)
@@ -365,206 +388,238 @@ function Show-NetworkInfo {
 # 3 - IMPRESSORAS
 # ==========================================================
 
+# ==========================================================
+# 3 - IMPRESSORAS (ATUALIZADO PARA MENU INTERATIVO)
+# ==========================================================
+
+# ==========================================================
+# 3 - IMPRESSORAS (MENU INTERATIVO + NOVA FOLHA TESTE)
+# ==========================================================
+
 function Printer-Diagnostics-Menu {
-    do {
+    $Opcoes = @(
+        " [1] Status Online e Fila de Jobs           ",
+        " [2] Mapeamento de Portas e IPs             ",
+        " [3] Testar Comunicacao (Ping IP)           ",
+        " [4] Reiniciar Spooler de Impressao         ",
+        " [5] Limpar Fila de Impressao Travada       ",
+        " [6] Ver e Definir Impressora Padrao        ",
+        " [7] Enviar Pagina de Teste (Diagnostico)   ",
+        " [8] Forcar Impressora Online               ",
+        " [0] Voltar                                 "
+    )
+    $Selecao = 0
+
+    while ($true) {
+        [System.Console]::CursorVisible = $false
         Show-Header
         Write-Host "  +======================================================+" -ForegroundColor $CY
         Write-Host "  |          DIAGNOSTICO DE IMPRESSORAS                  |" -ForegroundColor $CY
         Write-Host "  +======================================================+" -ForegroundColor $CY
-        Write-Host "  |  " -NoNewline -ForegroundColor $CY; Write-Host "[1]" -NoNewline -ForegroundColor $CN; Write-Host "  Status Online e Fila de Jobs                  |" -ForegroundColor $CW
-        Write-Host "  |  " -NoNewline -ForegroundColor $CY; Write-Host "[2]" -NoNewline -ForegroundColor $CN; Write-Host "  Mapeamento de Portas e IPs                    |" -ForegroundColor $CW
-        Write-Host "  |  " -NoNewline -ForegroundColor $CY; Write-Host "[3]" -NoNewline -ForegroundColor $CN; Write-Host "  Testar Comunicacao (Ping IP)                  |" -ForegroundColor $CW
-        Write-Host "  |  " -NoNewline -ForegroundColor $CY; Write-Host "[4]" -NoNewline -ForegroundColor $CN; Write-Host "  Reiniciar Spooler de Impressao                |" -ForegroundColor $CW
-        Write-Host "  |  " -NoNewline -ForegroundColor $CY; Write-Host "[5]" -NoNewline -ForegroundColor $CN; Write-Host "  Limpar Fila de Impressao Travada              |" -ForegroundColor $CW
-        Write-Host "  |  " -NoNewline -ForegroundColor $CY; Write-Host "[6]" -NoNewline -ForegroundColor $CN; Write-Host "  Ver e Definir Impressora Padrao               |" -ForegroundColor $CW
-        Write-Host "  |  " -NoNewline -ForegroundColor $CY; Write-Host "[7]" -NoNewline -ForegroundColor $CN; Write-Host "  Enviar Pagina de Teste                        |" -ForegroundColor $CW
-        Write-Host "  |  " -NoNewline -ForegroundColor $CY; Write-Host "[8]" -NoNewline -ForegroundColor $CN; Write-Host "  Forcar Impressora Online                      |" -ForegroundColor $CW
-        Write-Host "  +------------------------------------------------------+" -ForegroundColor $CY
-        Write-Host "  |  " -NoNewline -ForegroundColor $CY; Write-Host "[0]" -NoNewline -ForegroundColor $CR; Write-Host "  Voltar                                        |" -ForegroundColor $CW
+
+        for ($i = 0; $i -lt $Opcoes.Count; $i++) {
+            if ($i -eq $Selecao) {
+                Write-Host "  > $($Opcoes[$i])" -BackgroundColor $CC -ForegroundColor Black
+            } else {
+                Write-Host "    $($Opcoes[$i])" -ForegroundColor $CW
+            }
+        }
+
         Write-Host "  +======================================================+" -ForegroundColor $CY
+        Write-Host "  Use as setas [CIMA/BAIXO] para navegar e [ENTER] para selecionar." -ForegroundColor $CG
 
-        $c = Read-Host "`n  >> "
-        switch ($c) {
-            '1' {
-                Show-Header
-                Show-Progress "  Lendo Filas       " 800 $CY
-                Write-SectionHeader "STATUS DAS IMPRESSORAS" $CY
-                $statusResumo = @()
-                Get-Printer | ForEach-Object {
-                    $st = if ($_.PrinterStatus -eq "Normal") { "OK" } else { "WARN" }
-                    Write-Item $_.Name "Status: $($_.PrinterStatus) | Jobs: $($_.JobCount)" $st
-                    $statusResumo += "$($_.Name): $($_.PrinterStatus) | Jobs: $($_.JobCount)"
-                }
-                Write-SectionFooter $CY
-                Send-Report "Impressoras - Status e Fila" "Listagem de impressoras" ($statusResumo -join " | ")
-                Show-Pause
-            }
-            '2' {
-                Show-Header
-                Show-Progress "  Mapeando Portas   " 800 $CY
-                $allPorts = Get-PrinterPort
-                Write-SectionHeader "PORTAS E IPs" $CY
-                $portaResumo = @()
-                Get-Printer | ForEach-Object {
-                    $pName = $_.PortName
-                    $ip = ($allPorts | Where-Object { $_.Name -eq $pName }).PrinterHostAddress
-                    Write-Item $_.Name "Porta: $pName | IP: $ip" "INFO"
-                    $portaResumo += "$($_.Name) -> Porta: $pName IP: $ip"
-                }
-                Write-SectionFooter $CY
-                Send-Report "Impressoras - Portas e IPs" "Mapeamento de portas" ($portaResumo -join " | ")
-                Show-Pause
-            }
-            '3' {
-                $ip = Read-Host "`n  >> IP da Impressora"
-                if ($ip) {
-                    Show-Progress "  Pingando $ip      " 1000 $CY
-                    $pingOk = Test-Connection -ComputerName $ip -Count 2 -Quiet
-                    if ($pingOk) {
-                        Write-Item "Resultado" "Impressora RESPONDENDO em $ip" "OK"
-                    } else {
-                        Write-Item "Resultado" "Sem resposta em $ip" "FAIL"
+        $Tecla = [System.Console]::ReadKey($true).Key
+
+        if ($Tecla -eq 'UpArrow')   { $Selecao-- }
+        if ($Tecla -eq 'DownArrow') { $Selecao++ }
+
+        if ($Selecao -lt 0) { $Selecao = $Opcoes.Count - 1 }
+        if ($Selecao -ge $Opcoes.Count) { $Selecao = 0 }
+
+        if ($Tecla -eq 'Enter') {
+            [System.Console]::CursorVisible = $true 
+            
+            switch ($Selecao) {
+                0 { # OPCAO 1
+                    Show-Header
+                    Show-Progress "  Lendo Filas        " 800 $CY
+                    Write-SectionHeader "STATUS DAS IMPRESSORAS" $CY
+                    $statusResumo = @()
+                    Get-Printer | ForEach-Object {
+                        $st = if ($_.PrinterStatus -eq "Normal") { "OK" } else { "WARN" }
+                        Write-Item $_.Name "Status: $($_.PrinterStatus) | Jobs: $($_.JobCount)" $st
+                        $statusResumo += "$($_.Name): $($_.PrinterStatus) | Jobs: $($_.JobCount)"
                     }
-                    $pingMsg = if ($pingOk) { "Respondendo" } else { "Sem resposta" }
-                    Send-Report "Impressoras - Ping" "IP testado: $ip" "Resultado: $pingMsg"
-                }
-                Show-Pause
-            }
-            '4' {
-                Show-Header
-                Write-Host "  +======================================================+" -ForegroundColor $CY
-                Write-Host "  |         REINICIAR SPOOLER DE IMPRESSAO               |" -ForegroundColor $CY
-                Write-Host "  +======================================================+" -ForegroundColor $CY
-                Write-Host ""
-                Write-Host "  O Spooler gerencia todas as filas de impressao." -ForegroundColor $CG
-                Write-Host "  Reinicia-lo resolve a maioria dos casos de" -ForegroundColor $CG
-                Write-Host "  impressora que nao imprime sem motivo aparente." -ForegroundColor $CG
-
-                $confirm = Read-Host "`n  >> Reiniciar o Spooler agora? (S/N)"
-                if ($confirm -eq 's' -or $confirm -eq 'S') {
-                    Show-Progress "  Parando Spooler        " 1000 $CY
-                    Stop-Service -Name Spooler -Force -ErrorAction SilentlyContinue
-                    Start-Sleep -Seconds 2
-
-                    Show-Progress "  Iniciando Spooler      " 1000 $CY
-                    Start-Service -Name Spooler -ErrorAction SilentlyContinue
-
-                    $spooler = Get-Service -Name Spooler
-                    Write-SectionHeader "RESULTADO" $CY
-                    $spSt  = if ($spooler.Status -eq "Running") { "OK" } else { "FAIL" }
-                    $spMsg = if ($spooler.Status -eq "Running") { "Spooler rodando normalmente" } else { "Falha ao iniciar o Spooler" }
-                    Write-Item "Spooler" $spMsg $spSt
                     Write-SectionFooter $CY
-                    Send-Report "Impressoras - Reiniciar Spooler" "Reinicio do servico Spooler" $spMsg
+                    Send-Report "Impressoras - Status e Fila" "Listagem de impressoras" ($statusResumo -join " | ")
+                    Show-Pause
                 }
-                Show-Pause
-            }
-            '5' {
-                Show-Header
-                Write-Host "  +======================================================+" -ForegroundColor $CY
-                Write-Host "  |         LIMPAR FILA DE IMPRESSAO TRAVADA             |" -ForegroundColor $CY
-                Write-Host "  +======================================================+" -ForegroundColor $CY
-                Write-Host ""
-                Write-Host "  Um job travado na fila bloqueia todos os outros." -ForegroundColor $CG
-                Write-Host "  Esta opcao para o Spooler, apaga todos os jobs" -ForegroundColor $CG
-                Write-Host "  pendentes e reinicia o servico." -ForegroundColor $CG
-                Write-Host ""
-                Write-Host "  [WRN] Todos os trabalhos em fila serao cancelados." -ForegroundColor $CY
-
-                $confirm = Read-Host "`n  >> Limpar a fila agora? (S/N)"
-                if ($confirm -eq 's' -or $confirm -eq 'S') {
-                    Show-Progress "  Parando Spooler        " 1000 $CY
-                    Stop-Service -Name Spooler -Force -ErrorAction SilentlyContinue
-                    Start-Sleep -Seconds 2
-
-                    Show-Progress "  Removendo jobs travados" 1000 $CY
-                    $spoolPath = "$env:SystemRoot\System32\spool\PRINTERS"
-                    $removidos = 0
-                    if (Test-Path $spoolPath) {
-                        $arquivos = Get-ChildItem -Path $spoolPath -File -ErrorAction SilentlyContinue
-                        $removidos = $arquivos.Count
-                        $arquivos | Remove-Item -Force -ErrorAction SilentlyContinue
+                1 { # OPCAO 2
+                    Show-Header
+                    Show-Progress "  Mapeando Portas    " 800 $CY
+                    $allPorts = Get-PrinterPort
+                    Write-SectionHeader "PORTAS E IPs" $CY
+                    $portaResumo = @()
+                    Get-Printer | ForEach-Object {
+                        $pName = $_.PortName
+                        $ip = ($allPorts | Where-Object { $_.Name -eq $pName }).PrinterHostAddress
+                        Write-Item $_.Name "Porta: $pName | IP: $ip" "INFO"
+                        $portaResumo += "$($_.Name) -> Porta: $pName IP: $ip"
                     }
-
-                    Show-Progress "  Reiniciando Spooler    " 1000 $CY
-                    Start-Service -Name Spooler -ErrorAction SilentlyContinue
-                    Start-Sleep -Seconds 1
-
-                    $spooler = Get-Service -Name Spooler
-                    Write-SectionHeader "RESULTADO DA LIMPEZA" $CY
-                    Write-Item "Jobs removidos" "$removidos arquivo(s) de fila apagados" "OK"
-                    $spSt  = if ($spooler.Status -eq "Running") { "OK" } else { "FAIL" }
-                    $spMsg = if ($spooler.Status -eq "Running") { "Spooler rodando normalmente" } else { "Falha ao reiniciar o Spooler" }
-                    Write-Item "Spooler" $spMsg $spSt
                     Write-SectionFooter $CY
-                    Send-Report "Impressoras - Limpar Fila" "Limpeza de jobs travados" "$removidos job(s) removidos | Spooler: $spMsg"
+                    Send-Report "Impressoras - Portas e IPs" "Mapeamento de portas" ($portaResumo -join " | ")
+                    Show-Pause
                 }
-                Show-Pause
-            }
-            '6' {
-                Show-Header
-                Write-Host "  +======================================================+" -ForegroundColor $CY
-                Write-Host "  |         VER E DEFINIR IMPRESSORA PADRAO              |" -ForegroundColor $CY
-                Write-Host "  +======================================================+" -ForegroundColor $CY
-
-                $impressoras = Get-Printer | Sort-Object Name
-                Write-SectionHeader "IMPRESSORAS DISPONIVEIS" $CY
-                $i    = 1
-                $lista = @()
-                foreach ($imp in $impressoras) {
-                    $isPadrao = if ($imp.Default) { " [PADRAO ATUAL]" } else { "" }
-                    $st       = if ($imp.Default) { "OK" } else { "INFO" }
-                    Write-Item "[$i] $($imp.Name)" "$($imp.PrinterStatus)$isPadrao" $st
-                    $lista += $imp.Name
-                    $i++
+                2 { # OPCAO 3
+                    $ip = Read-Host "`n  >> IP da Impressora"
+                    if ($ip) {
+                        Show-Progress "  Pingando $ip      " 1000 $CY
+                        $pingOk = Test-Connection -ComputerName $ip -Count 2 -Quiet
+                        if ($pingOk) {
+                            Write-Item "Resultado" "Impressora RESPONDENDO em $ip" "OK"
+                        } else {
+                            Write-Item "Resultado" "Sem resposta em $ip" "FAIL"
+                        }
+                        $pingMsg = if ($pingOk) { "Respondendo" } else { "Sem resposta" }
+                        Send-Report "Impressoras - Ping" "IP testado: $ip" "Resultado: $pingMsg"
+                    }
+                    Show-Pause
                 }
-                Write-SectionFooter $CY
+                3 { # OPCAO 4
+                    Show-Header
+                    Write-Host "  +======================================================+" -ForegroundColor $CY
+                    Write-Host "  |         REINICIAR SPOOLER DE IMPRESSAO               |" -ForegroundColor $CY
+                    Write-Host "  +======================================================+" -ForegroundColor $CY
+                    Write-Host ""
+                    Write-Host "  O Spooler gerencia todas as filas de impressao." -ForegroundColor $CG
+                    Write-Host "  Reinicia-lo resolve a maioria dos casos de" -ForegroundColor $CG
+                    Write-Host "  impressora que nao imprime sem motivo aparente." -ForegroundColor $CG
 
-                $escolha = Read-Host "`n  >> Numero da impressora para definir como padrao (ENTER para cancelar)"
-                if ($escolha -match '^\d+$') {
-                    $idx = [int]$escolha - 1
-                    if ($idx -ge 0 -and $idx -lt $lista.Count) {
-                        $nomeSelecionado = $lista[$idx]
-                        Set-Printer -Name $nomeSelecionado -Default $true -ErrorAction SilentlyContinue
-                        $novoPadrao = Get-Printer | Where-Object { $_.Default -eq $true }
-                        $defSt  = if ($novoPadrao.Name -eq $nomeSelecionado) { "OK" } else { "FAIL" }
-                        $defMsg = if ($novoPadrao.Name -eq $nomeSelecionado) { "$nomeSelecionado definida como padrao" } else { "Falha ao definir impressora padrao" }
+                    $confirm = Read-Host "`n  >> Reiniciar o Spooler agora? (S/N)"
+                    if ($confirm -eq 's' -or $confirm -eq 'S') {
+                        Show-Progress "  Parando Spooler        " 1000 $CY
+                        Stop-Service -Name Spooler -Force -ErrorAction SilentlyContinue
+                        Start-Sleep -Seconds 2
+
+                        Show-Progress "  Iniciando Spooler      " 1000 $CY
+                        Start-Service -Name Spooler -ErrorAction SilentlyContinue
+
+                        $spooler = Get-Service -Name Spooler
                         Write-SectionHeader "RESULTADO" $CY
-                        Write-Item "Padrao" $defMsg $defSt
+                        $spSt  = if ($spooler.Status -eq "Running") { "OK" } else { "FAIL" }
+                        $spMsg = if ($spooler.Status -eq "Running") { "Spooler rodando normalmente" } else { "Falha ao iniciar o Spooler" }
+                        Write-Item "Spooler" $spMsg $spSt
                         Write-SectionFooter $CY
-                        Send-Report "Impressoras - Definir Padrao" "Alteracao de impressora padrao" $defMsg
-                    } else {
-                        Write-Item "Erro" "Numero invalido" "FAIL"
+                        Send-Report "Impressoras - Reiniciar Spooler" "Reinicio do servico Spooler" $spMsg
                     }
+                    Show-Pause
                 }
-                Show-Pause
-            }
-            '7' {
-                Show-Header
-                Write-Host "  +======================================================+" -ForegroundColor $CY
-                Write-Host "  |            ENVIAR PAGINA DE TESTE                    |" -ForegroundColor $CY
-                Write-Host "  +======================================================+" -ForegroundColor $CY
+                4 { # OPCAO 5
+                    Show-Header
+                    Write-Host "  +======================================================+" -ForegroundColor $CY
+                    Write-Host "  |         LIMPAR FILA DE IMPRESSAO TRAVADA             |" -ForegroundColor $CY
+                    Write-Host "  +======================================================+" -ForegroundColor $CY
+                    Write-Host ""
+                    Write-Host "  Um job travado na fila bloqueia todos os outros." -ForegroundColor $CG
+                    Write-Host "  Esta opcao para o Spooler, apaga todos os jobs" -ForegroundColor $CG
+                    Write-Host "  pendentes e reinicia o servico." -ForegroundColor $CG
+                    Write-Host ""
+                    Write-Host "  [WRN] Todos os trabalhos em fila serao cancelados." -ForegroundColor $CY
 
-                $impressoras = Get-Printer | Sort-Object Name
-                Write-SectionHeader "SELECIONE A IMPRESSORA" $CY
-                $i    = 1
-                $lista = @()
-                foreach ($imp in $impressoras) {
-                    $isPadrao = if ($imp.Default) { " [PADRAO]" } else { "" }
-                    Write-Item "[$i]" "$($imp.Name)$isPadrao" "INFO"
-                    $lista += $imp.Name
-                    $i++
+                    $confirm = Read-Host "`n  >> Limpar a fila agora? (S/N)"
+                    if ($confirm -eq 's' -or $confirm -eq 'S') {
+                        Show-Progress "  Parando Spooler        " 1000 $CY
+                        Stop-Service -Name Spooler -Force -ErrorAction SilentlyContinue
+                        Start-Sleep -Seconds 2
+
+                        Show-Progress "  Removendo jobs travados" 1000 $CY
+                        $spoolPath = "$env:SystemRoot\System32\spool\PRINTERS"
+                        $removidos = 0
+                        if (Test-Path $spoolPath) {
+                            $arquivos = Get-ChildItem -Path $spoolPath -File -ErrorAction SilentlyContinue
+                            $removidos = $arquivos.Count
+                            $arquivos | Remove-Item -Force -ErrorAction SilentlyContinue
+                        }
+
+                        Show-Progress "  Reiniciando Spooler    " 1000 $CY
+                        Start-Service -Name Spooler -ErrorAction SilentlyContinue
+                        Start-Sleep -Seconds 1
+
+                        $spooler = Get-Service -Name Spooler
+                        Write-SectionHeader "RESULTADO DA LIMPEZA" $CY
+                        Write-Item "Jobs removidos" "$removidos arquivo(s) de fila apagados" "OK"
+                        $spSt  = if ($spooler.Status -eq "Running") { "OK" } else { "FAIL" }
+                        $spMsg = if ($spooler.Status -eq "Running") { "Spooler rodando normalmente" } else { "Falha ao reiniciar o Spooler" }
+                        Write-Item "Spooler" $spMsg $spSt
+                        Write-SectionFooter $CY
+                        Send-Report "Impressoras - Limpar Fila" "Limpeza de jobs travados" "$removidos job(s) removidos | Spooler: $spMsg"
+                    }
+                    Show-Pause
                 }
-                Write-SectionFooter $CY
+                5 { # OPCAO 6
+                    Show-Header
+                    Write-Host "  +======================================================+" -ForegroundColor $CY
+                    Write-Host "  |         VER E DEFINIR IMPRESSORA PADRAO              |" -ForegroundColor $CY
+                    Write-Host "  +======================================================+" -ForegroundColor $CY
 
-                $escolha = Read-Host "`n  >> Numero da impressora"
-                if ($escolha -match '^\d+$') {
-                    $idx = [int]$escolha - 1
-                    if ($idx -ge 0 -and $idx -lt $lista.Count) {
-                        $nomeImp  = $lista[$idx]
-                        $dataHora = Get-Date -Format "dd/MM/yyyy HH:mm:ss"
+                    $impressoras = Get-Printer | Sort-Object Name
+                    Write-SectionHeader "IMPRESSORAS DISPONIVEIS" $CY
+                    $i    = 1
+                    $lista = @()
+                    foreach ($imp in $impressoras) {
+                        $isPadrao = if ($imp.Default) { " [PADRAO ATUAL]" } else { "" }
+                        $st       = if ($imp.Default) { "OK" } else { "INFO" }
+                        Write-Item "[$i] $($imp.Name)" "$($imp.PrinterStatus)$isPadrao" $st
+                        $lista += $imp.Name
+                        $i++
+                    }
+                    Write-SectionFooter $CY
 
-                        $conteudo = @"
+                    $escolha = Read-Host "`n  >> Numero da impressora para definir como padrao (ENTER para cancelar)"
+                    if ($escolha -match '^\d+$') {
+                        $idx = [int]$escolha - 1
+                        if ($idx -ge 0 -and $idx -lt $lista.Count) {
+                            $nomeSelecionado = $lista[$idx]
+                            Set-Printer -Name $nomeSelecionado -Default $true -ErrorAction SilentlyContinue
+                            $novoPadrao = Get-Printer | Where-Object { $_.Default -eq $true }
+                            $defSt  = if ($novoPadrao.Name -eq $nomeSelecionado) { "OK" } else { "FAIL" }
+                            $defMsg = if ($novoPadrao.Name -eq $nomeSelecionado) { "$nomeSelecionado definida como padrao" } else { "Falha ao definir impressora padrao" }
+                            Write-SectionHeader "RESULTADO" $CY
+                            Write-Item "Padrao" $defMsg $defSt
+                            Write-SectionFooter $CY
+                            Send-Report "Impressoras - Definir Padrao" "Alteracao de impressora padrao" $defMsg
+                        } else {
+                            Write-Item "Erro" "Numero invalido" "FAIL"
+                        }
+                    }
+                    Show-Pause
+                }
+                6 { 6  # OPCAO 7 - ENVIAR PAGINA DE TESTE
+                    Show-Header
+                    Write-Host "  +======================================================+" -ForegroundColor $CY
+                    Write-Host "  |             ENVIAR PAGINA DE TESTE                   |" -ForegroundColor $CY
+                    Write-Host "  +======================================================+" -ForegroundColor $CY
+
+                    $impressoras = Get-Printer | Sort-Object Name
+                    Write-SectionHeader "SELECIONE A IMPRESSORA" $CY
+                    $i    = 1
+                    $lista = @()
+                    foreach ($imp in $impressoras) {
+                        $isPadrao = if ($imp.Default) { " [PADRAO]" } else { "" }
+                        Write-Item "[$i]" "$($imp.Name)$isPadrao" "INFO"
+                        $lista += $imp.Name
+                        $i++
+                    }
+                    Write-SectionFooter $CY
+
+                    $escolha = Read-Host "`n  >> Numero da impressora"
+                    if ($escolha -match '^\d+$') {
+                        $idx = [int]$escolha - 1
+                        if ($idx -ge 0 -and $idx -lt $lista.Count) {
+                            $nomeImp  = $lista[$idx]
+                            $dataHora = Get-Date -Format "dd/MM/yyyy HH:mm:ss"
+
+                            $conteudo = @"
 ====================================================
           PAGINA DE TESTE - SUPORTE T.I.
                CLIVALEMAIS
@@ -592,76 +647,78 @@ function Printer-Diagnostics-Menu {
 
 ====================================================
 "@
-                        $tempFile = "$env:TEMP\teste_impressao.txt"
-                        $conteudo | Out-File -FilePath $tempFile -Encoding UTF8 -Force
+                            $tempFile = "$env:TEMP\teste_impressao.txt"
+                            $conteudo | Out-File -FilePath $tempFile -Encoding UTF8 -Force
 
-                        Show-Progress "  Enviando para $nomeImp" 1500 $CY
-                        Start-Process -FilePath "notepad.exe" -ArgumentList "/p `"$tempFile`"" -Wait -ErrorAction SilentlyContinue
+                            Show-Progress "  Enviando para $nomeImp" 1500 $CY
+                            Start-Process -FilePath "notepad.exe" -ArgumentList "/p `"$tempFile`"" -Wait -ErrorAction SilentlyContinue
 
-                        Write-SectionHeader "RESULTADO" $CY
-                        Write-Item "Pagina de teste" "Enviada para $nomeImp" "OK"
-                        Write-Item "Dica" "Verifique se a folha saiu corretamente" "INFO"
-                        Write-SectionFooter $CY
-                        Send-Report "Impressoras - Pagina de Teste" "Impressora: $nomeImp" "Pagina de teste enviada"
-                    } else {
-                        Write-Item "Erro" "Numero invalido" "FAIL"
-                    }
-                }
-                Show-Pause
-            }
-            '8' {
-                Show-Header
-                Write-Host "  +======================================================+" -ForegroundColor $CY
-                Write-Host "  |           FORCAR IMPRESSORA ONLINE                   |" -ForegroundColor $CY
-                Write-Host "  +======================================================+" -ForegroundColor $CY
-                Write-Host ""
-                Write-Host "  Quando o Windows mostra a impressora como offline" -ForegroundColor $CG
-                Write-Host "  mesmo ela estando ligada e na rede, esta opcao" -ForegroundColor $CG
-                Write-Host "  forca o status para online sem reinstalar nada." -ForegroundColor $CG
-
-                $impressoras = Get-Printer | Sort-Object Name
-                Write-SectionHeader "SELECIONE A IMPRESSORA" $CY
-                $i    = 1
-                $lista = @()
-                foreach ($imp in $impressoras) {
-                    $st = if ($imp.PrinterStatus -ne "Normal") { "WARN" } else { "OK" }
-                    Write-Item "[$i]" "$($imp.Name) | Status: $($imp.PrinterStatus)" $st
-                    $lista += $imp.Name
-                    $i++
-                }
-                Write-SectionFooter $CY
-
-                $escolha = Read-Host "`n  >> Numero da impressora"
-                if ($escolha -match '^\d+$') {
-                    $idx = [int]$escolha - 1
-                    if ($idx -ge 0 -and $idx -lt $lista.Count) {
-                        $nomeImp = $lista[$idx]
-                        Show-Progress "  Forcando $nomeImp online" 1200 $CY
-                        try {
-                            Set-Printer -Name $nomeImp -WorkOffline $false -ErrorAction Stop
                             Write-SectionHeader "RESULTADO" $CY
-                            Write-Item "Status" "$nomeImp forcada para ONLINE" "OK"
-                            Write-Item "Dica  " "Tente imprimir novamente" "INFO"
+                            Write-Item "Pagina de teste" "Enviada para $nomeImp" "OK"
+                            Write-Item "Dica" "Verifique se a folha saiu corretamente" "INFO"
                             Write-SectionFooter $CY
-                            Send-Report "Impressoras - Forcar Online" "Impressora: $nomeImp" "Forcada para ONLINE com sucesso"
-                        } catch {
-                            Write-SectionHeader "RESULTADO" $CY
-                            Write-Item "Status" "Nao foi possivel alterar o status" "FAIL"
-                            Write-Item "Dica  " "Verifique se a impressora esta ligada e na rede" "WARN"
-                            Write-SectionFooter $CY
-                            Send-Report "Impressoras - Forcar Online" "Impressora: $nomeImp" "FALHA ao forcar online"
+                            Send-Report "Impressoras - Pagina de Teste" "Impressora: $nomeImp" "Pagina de teste enviada"
+                        } else {
+                            Write-Item "Erro" "Numero invalido" "FAIL"
                         }
-                    } else {
-                        Write-Item "Erro" "Numero invalido" "FAIL"
                     }
+                    Show-Pause
                 }
-                Show-Pause
-            }
-            '0' { return }
-        }
-    } while ($true)
-}
+                7 { # OPCAO 8
+                    Show-Header
+                    Write-Host "  +======================================================+" -ForegroundColor $CY
+                    Write-Host "  |            FORCAR IMPRESSORA ONLINE                  |" -ForegroundColor $CY
+                    Write-Host "  +======================================================+" -ForegroundColor $CY
+                    Write-Host ""
+                    Write-Host "  Quando o Windows mostra a impressora como offline" -ForegroundColor $CG
+                    Write-Host "  mesmo ela estando ligada e na rede, esta opcao" -ForegroundColor $CG
+                    Write-Host "  forca o status para online sem reinstalar nada." -ForegroundColor $CG
 
+                    $impressoras = Get-Printer | Sort-Object Name
+                    Write-SectionHeader "SELECIONE A IMPRESSORA" $CY
+                    $i    = 1
+                    $lista = @()
+                    foreach ($imp in $impressoras) {
+                        $st = if ($imp.PrinterStatus -ne "Normal") { "WARN" } else { "OK" }
+                        Write-Item "[$i]" "$($imp.Name) | Status: $($imp.PrinterStatus)" $st
+                        $lista += $imp.Name
+                        $i++
+                    }
+                    Write-SectionFooter $CY
+
+                    $escolha = Read-Host "`n  >> Numero da impressora"
+                    if ($escolha -match '^\d+$') {
+                        $idx = [int]$escolha - 1
+                        if ($idx -ge 0 -and $idx -lt $lista.Count) {
+                            $nomeImp = $lista[$idx]
+                            Show-Progress "  Forcando $nomeImp online" 1200 $CY
+                            try {
+                                Set-Printer -Name $nomeImp -WorkOffline $false -ErrorAction Stop
+                                Write-SectionHeader "RESULTADO" $CY
+                                Write-Item "Status" "$nomeImp forcada para ONLINE" "OK"
+                                Write-Item "Dica  " "Tente imprimir novamente" "INFO"
+                                Write-SectionFooter $CY
+                                Send-Report "Impressoras - Forcar Online" "Impressora: $nomeImp" "Forcada para ONLINE com sucesso"
+                            } catch {
+                                Write-SectionHeader "RESULTADO" $CY
+                                Write-Item "Status" "Nao foi possivel alterar o status" "FAIL"
+                                Write-Item "Dica  " "Verifique se a impressora esta ligada e na rede" "WARN"
+                                Write-SectionFooter $CY
+                                Send-Report "Impressoras - Forcar Online" "Impressora: $nomeImp" "FALHA ao forcar online"
+                            }
+                        } else {
+                            Write-Item "Erro" "Numero invalido" "FAIL"
+                        }
+                    }
+                    Show-Pause
+                }
+                8 { # VOLTAR (OPCAO 0)
+                    return 
+                }
+            }
+        }
+    }
+}
 # ==========================================================
 # 4 - OTIMIZAR RAM (SUBMENU)
 # ==========================================================
@@ -881,34 +938,42 @@ function Memory-FlagsChrome {
 }
 
 function Optimize-Memory {
-    do {
+    $Opcoes = @(
+        " [1] Limpeza Geral de RAM          (Mem-Reduct)        ",
+        " [2] Limpeza Cirurgica Chrome/Edge (sem fechar)        ",
+        " [3] Aplicar Flags de Economia no Chrome               ",
+        " [0] Voltar                                            "
+    )
+    $Selecao = 0
+    while ($true) {
+        [System.Console]::CursorVisible = $false
         Show-Header
         Write-Host "  +======================================================+" -ForegroundColor $CN
         Write-Host "  |          OTIMIZACAO DE RAM - MENU                    |" -ForegroundColor $CN
         Write-Host "  +======================================================+" -ForegroundColor $CN
-        Write-Host "  |  " -NoNewline -ForegroundColor $CN
-        Write-Host "[1]" -NoNewline -ForegroundColor $CN
-        Write-Host "  Limpeza Geral de RAM          (Mem-Reduct)        |" -ForegroundColor $CW
-        Write-Host "  |  " -NoNewline -ForegroundColor $CN
-        Write-Host "[2]" -NoNewline -ForegroundColor $CN
-        Write-Host "  Limpeza Cirurgica Chrome/Edge (sem fechar)        |" -ForegroundColor $CW
-        Write-Host "  |  " -NoNewline -ForegroundColor $CN
-        Write-Host "[3]" -NoNewline -ForegroundColor $CN
-        Write-Host "  Aplicar Flags de Economia no Chrome               |" -ForegroundColor $CW
-        Write-Host "  +------------------------------------------------------+" -ForegroundColor $CN
-        Write-Host "  |  " -NoNewline -ForegroundColor $CN
-        Write-Host "[0]" -NoNewline -ForegroundColor $CG
-        Write-Host "  Voltar                                            |" -ForegroundColor $CG
-        Write-Host "  +======================================================+" -ForegroundColor $CN
-
-        $c = Read-Host "`n  >> "
-        switch ($c) {
-            '1' { Memory-LimpezaGeral }
-            '2' { Memory-LimpezaChrome }
-            '3' { Memory-FlagsChrome }
-            '0' { return }
+        for ($i = 0; $i -lt $Opcoes.Count; $i++) {
+            if ($i -eq $Selecao) { Write-Host "  > $($Opcoes[$i])" -BackgroundColor $CC -ForegroundColor Black } 
+            else { Write-Host "    $($Opcoes[$i])" -ForegroundColor $CW }
         }
-    } while ($true)
+        Write-Host "  +======================================================+" -ForegroundColor $CN
+        Write-Host "  Use as setas [CIMA/BAIXO] para navegar e [ENTER] para selecionar." -ForegroundColor $CG
+
+        $Tecla = [System.Console]::ReadKey($true).Key
+        if ($Tecla -eq 'UpArrow')   { $Selecao-- }
+        if ($Tecla -eq 'DownArrow') { $Selecao++ }
+        if ($Selecao -lt 0) { $Selecao = $Opcoes.Count - 1 }
+        if ($Selecao -ge $Opcoes.Count) { $Selecao = 0 }
+
+        if ($Tecla -eq 'Enter') {
+            [System.Console]::CursorVisible = $true 
+            switch ($Selecao) {
+                0 { Memory-LimpezaGeral }
+                1 { Memory-LimpezaChrome }
+                2 { Memory-FlagsChrome }
+                3 { return }
+            }
+        }
+    }
 }
 
 # ==========================================================
@@ -916,152 +981,158 @@ function Optimize-Memory {
 # ==========================================================
 
 function Repair-Network {
-    do {
+    $Opcoes = @(
+        " [1] Reparo Completo (Release/Renew/DNS/Winsock)      ",
+        " [2] Limpar Cache DNS apenas (flushdns)               ",
+        " [3] Testar Conectividade (Gateway/DNS/Internet)      ",
+        " [4] Resetar Adaptador de Rede                        ",
+        " [0] Voltar                                           "
+    )
+    $Selecao = 0
+    while ($true) {
+        [System.Console]::CursorVisible = $false
         Show-Header
         Write-Host "  +======================================================+" -ForegroundColor $CC
         Write-Host "  |          REPARO E DIAGNOSTICO DE REDE                |" -ForegroundColor $CC
         Write-Host "  +======================================================+" -ForegroundColor $CC
-        Write-Host "  |  " -NoNewline -ForegroundColor $CC
-        Write-Host "[1]" -NoNewline -ForegroundColor $CN
-        Write-Host "  Reparo Completo (Release/Renew/DNS/Winsock)      |" -ForegroundColor $CW
-        Write-Host "  |  " -NoNewline -ForegroundColor $CC
-        Write-Host "[2]" -NoNewline -ForegroundColor $CN
-        Write-Host "  Limpar Cache DNS apenas (flushdns)               |" -ForegroundColor $CW
-        Write-Host "  |  " -NoNewline -ForegroundColor $CC
-        Write-Host "[3]" -NoNewline -ForegroundColor $CN
-        Write-Host "  Testar Conectividade (Gateway/DNS/Internet)      |" -ForegroundColor $CW
-        Write-Host "  |  " -NoNewline -ForegroundColor $CC
-        Write-Host "[4]" -NoNewline -ForegroundColor $CN
-        Write-Host "  Resetar Adaptador de Rede                        |" -ForegroundColor $CW
-        Write-Host "  +------------------------------------------------------+" -ForegroundColor $CC
-        Write-Host "  |  " -NoNewline -ForegroundColor $CC
-        Write-Host "[0]" -NoNewline -ForegroundColor $CG
-        Write-Host "  Voltar                                            |" -ForegroundColor $CG
-        Write-Host "  +======================================================+" -ForegroundColor $CC
-
-        $c = Read-Host "`n  >> "
-        switch ($c) {
-            '1' {
-                Show-Header
-                Write-Host "  +======================================================+" -ForegroundColor $CC
-                Write-Host "  |           REPARO COMPLETO DE REDE                    |" -ForegroundColor $CC
-                Write-Host "  +======================================================+" -ForegroundColor $CC
-
-                $confirm = Read-Host "`n  >> Iniciar reparo completo? (S/N)"
-                if ($confirm -eq 's' -or $confirm -eq 'S') {
-                    Show-Progress "  Release IP Atual   " 1000 $CC; ipconfig /release | Out-Null
-                    Show-Progress "  Limpando Cache DNS " 800  $CC; ipconfig /flushdns | Out-Null
-                    Show-Progress "  Renovando IP       " 1200 $CC; ipconfig /renew | Out-Null
-                    Show-Progress "  Reset Winsock      " 1000 $CP; netsh winsock reset | Out-Null
-                    Show-Progress "  Registrando DNS    " 800  $CC; ipconfig /registerdns | Out-Null
-
-                    Write-SectionHeader "DIAGNOSTICO POS-REPARO" $CC
-                    $test   = Test-Connection -ComputerName 8.8.8.8 -Count 2 -Quiet
-                    $netMsg = if ($test) { "RESTABELECIDA!" } else { "SEM CONEXAO -- verifique o roteador" }
-                    $netSt  = if ($test) { "OK" } else { "FAIL" }
-                    Write-Item "Internet" $netMsg $netSt
-                    Write-SectionFooter $CC
-                    Write-Host "  NOTA: Reset do Winsock pode exigir reinicializacao." -ForegroundColor $CY
-                    Send-Report "Rede - Reparo Completo" "Release/Renew/DNS/Winsock" "Internet pos-reparo: $netMsg"
-                }
-                Show-Pause
-            }
-            '2' {
-                Show-Header
-                Show-Progress "  Limpando Cache DNS " 1000 $CC
-                ipconfig /flushdns | Out-Null
-
-                Write-SectionHeader "RESULTADO" $CC
-                Write-Item "Cache DNS" "Limpo com sucesso" "OK"
-                Write-Item "Dica    " "Tente acessar o site que estava com problema" "INFO"
-                Write-SectionFooter $CC
-                Send-Report "Rede - Flush DNS" "Limpeza de cache DNS" "Cache DNS limpo com sucesso"
-                Show-Pause
-            }
-            '3' {
-                Show-Header
-                Show-Progress "  Testando Conectividade" 1200 $CC
-
-                $adapters  = Safe-CimQuery "Win32_NetworkAdapterConfiguration" | Where-Object { $_.IPEnabled -eq $true }
-                $testResumo = @()
-
-                foreach ($adapter in $adapters) {
-                    Write-SectionHeader $adapter.Description $CC
-
-                    if ($adapter.DefaultIPGateway) {
-                        $gw     = $adapter.DefaultIPGateway[0]
-                        $pGate  = Test-Connection -ComputerName $gw -Count 2 -Quiet
-                        $gwSt   = if ($pGate) { "OK" } else { "FAIL" }
-                        $gwMsg  = if ($pGate) { "Respondendo ($gw)" } else { "Sem resposta ($gw)" }
-                        Write-Item "Gateway " $gwMsg $gwSt
-                    } else {
-                        Write-Item "Gateway" "Nao encontrado" "WARN"
-                        $gwMsg = "Nao encontrado"
-                    }
-
-                    $pDNS   = Test-Connection -ComputerName 8.8.8.8 -Count 2 -Quiet
-                    $dnsSt  = if ($pDNS) { "OK" } else { "FAIL" }
-                    $dnsMsg = if ($pDNS) { "Respondendo (8.8.8.8)" } else { "Sem resposta (8.8.8.8)" }
-                    Write-Item "DNS     " $dnsMsg $dnsSt
-
-                    $pNet   = $false
-                    try { $pNet = [bool](Resolve-DnsName "google.com" -ErrorAction SilentlyContinue) } catch {}
-                    $intSt  = if ($pNet) { "OK" } else { "FAIL" }
-                    $intMsg = if ($pNet) { "Resolucao de DNS funcionando" } else { "Falha ao resolver nomes" }
-                    Write-Item "Internet" $intMsg $intSt
-
-                    Write-SectionFooter $CC
-                    $testResumo += "$($adapter.Description) | GW: $gwMsg | DNS: $dnsMsg | Internet: $intMsg"
-                }
-
-                Send-Report "Rede - Teste de Conectividade" "Gateway/DNS/Internet" ($testResumo -join " || ")
-                Show-Pause
-            }
-            '4' {
-                Show-Header
-                Write-Host "  +======================================================+" -ForegroundColor $CC
-                Write-Host "  |           RESETAR ADAPTADOR DE REDE                 |" -ForegroundColor $CC
-                Write-Host "  +======================================================+" -ForegroundColor $CC
-                Write-Host ""
-                Write-Host "  Desativa e reativa o adaptador de rede fisicamente." -ForegroundColor $CG
-                Write-Host "  Util quando a conexao esta instavel ou sem IP." -ForegroundColor $CG
-                Write-Host ""
-                Write-Host "  [WRN] A conexao sera interrompida por alguns segundos." -ForegroundColor $CY
-
-                $confirm = Read-Host "`n  >> Resetar o adaptador agora? (S/N)"
-                if ($confirm -eq 's' -or $confirm -eq 'S') {
-                    $adapters = Get-NetAdapter | Where-Object { $_.Status -eq "Up" }
-
-                    if (-not $adapters) {
-                        Write-Item "Adaptador" "Nenhum adaptador ativo encontrado" "WARN"
-                        Send-Report "Rede - Reset Adaptador" "Desativar/Reativar adaptador" "Nenhum adaptador ativo encontrado"
-                    } else {
-                        $adResumo = @()
-                        foreach ($adapter in $adapters) {
-                            Show-Progress "  Desativando $($adapter.Name) " 1000 $CC
-                            Disable-NetAdapter -Name $adapter.Name -Confirm:$false -ErrorAction SilentlyContinue
-                            Start-Sleep -Seconds 2
-
-                            Show-Progress "  Reativando $($adapter.Name)  " 1000 $CC
-                            Enable-NetAdapter -Name $adapter.Name -Confirm:$false -ErrorAction SilentlyContinue
-                            Start-Sleep -Seconds 3
-
-                            $status = (Get-NetAdapter -Name $adapter.Name).Status
-                            $adSt   = if ($status -eq "Up") { "OK" } else { "WARN" }
-                            $adMsg  = if ($status -eq "Up") { "Adaptador online novamente" } else { "Adaptador ainda inicializando..." }
-                            Write-SectionHeader "RESULTADO - $($adapter.Name)" $CC
-                            Write-Item "Status" $adMsg $adSt
-                            Write-SectionFooter $CC
-                            $adResumo += "$($adapter.Name): $adMsg"
-                        }
-                        Send-Report "Rede - Reset Adaptador" "Desativar/Reativar adaptador" ($adResumo -join " | ")
-                    }
-                }
-                Show-Pause
-            }
-            '0' { return }
+        for ($i = 0; $i -lt $Opcoes.Count; $i++) {
+            if ($i -eq $Selecao) { Write-Host "  > $($Opcoes[$i])" -BackgroundColor $CC -ForegroundColor Black } 
+            else { Write-Host "    $($Opcoes[$i])" -ForegroundColor $CW }
         }
-    } while ($true)
+        Write-Host "  +======================================================+" -ForegroundColor $CC
+        Write-Host "  Use as setas [CIMA/BAIXO] para navegar e [ENTER] para selecionar." -ForegroundColor $CG
+
+        $Tecla = [System.Console]::ReadKey($true).Key
+        if ($Tecla -eq 'UpArrow')   { $Selecao-- }
+        if ($Tecla -eq 'DownArrow') { $Selecao++ }
+        if ($Selecao -lt 0) { $Selecao = $Opcoes.Count - 1 }
+        if ($Selecao -ge $Opcoes.Count) { $Selecao = 0 }
+
+        if ($Tecla -eq 'Enter') {
+            [System.Console]::CursorVisible = $true 
+            switch ($Selecao) {
+                0 { 
+                    Show-Header
+                    Write-Host "  +======================================================+" -ForegroundColor $CC
+                    Write-Host "  |            REPARO COMPLETO DE REDE                   |" -ForegroundColor $CC
+                    Write-Host "  +======================================================+" -ForegroundColor $CC
+
+                    $confirm = Read-Host "`n  >> Iniciar reparo completo? (S/N)"
+                    if ($confirm -eq 's' -or $confirm -eq 'S') {
+                        Show-Progress "  Release IP Atual   " 1000 $CC; ipconfig /release | Out-Null
+                        Show-Progress "  Limpando Cache DNS " 800  $CC; ipconfig /flushdns | Out-Null
+                        Show-Progress "  Renovando IP       " 1200 $CC; ipconfig /renew | Out-Null
+                        Show-Progress "  Reset Winsock      " 1000 $CP; netsh winsock reset | Out-Null
+                        Show-Progress "  Registrando DNS    " 800  $CC; ipconfig /registerdns | Out-Null
+
+                        Write-SectionHeader "DIAGNOSTICO POS-REPARO" $CC
+                        $test   = Test-Connection -ComputerName 8.8.8.8 -Count 2 -Quiet
+                        $netMsg = if ($test) { "RESTABELECIDA!" } else { "SEM CONEXAO -- verifique o roteador" }
+                        $netSt  = if ($test) { "OK" } else { "FAIL" }
+                        Write-Item "Internet" $netMsg $netSt
+                        Write-SectionFooter $CC
+                        Write-Host "  NOTA: Reset do Winsock pode exigir reinicializacao." -ForegroundColor $CY
+                        Send-Report "Rede - Reparo Completo" "Release/Renew/DNS/Winsock" "Internet pos-reparo: $netMsg"
+                    }
+                    Show-Pause
+                }
+                1 { 
+                    Show-Header
+                    Show-Progress "  Limpando Cache DNS " 1000 $CC
+                    ipconfig /flushdns | Out-Null
+
+                    Write-SectionHeader "RESULTADO" $CC
+                    Write-Item "Cache DNS" "Limpo com sucesso" "OK"
+                    Write-Item "Dica    " "Tente acessar o site que estava com problema" "INFO"
+                    Write-SectionFooter $CC
+                    Send-Report "Rede - Flush DNS" "Limpeza de cache DNS" "Cache DNS limpo com sucesso"
+                    Show-Pause
+                }
+                2 { 
+                    Show-Header
+                    Show-Progress "  Testando Conectividade" 1200 $CC
+
+                    $adapters  = Safe-CimQuery "Win32_NetworkAdapterConfiguration" | Where-Object { $_.IPEnabled -eq $true }
+                    $testResumo = @()
+
+                    foreach ($adapter in $adapters) {
+                        Write-SectionHeader $adapter.Description $CC
+
+                        if ($adapter.DefaultIPGateway) {
+                            $gw     = $adapter.DefaultIPGateway[0]
+                            $pGate  = Test-Connection -ComputerName $gw -Count 2 -Quiet
+                            $gwSt   = if ($pGate) { "OK" } else { "FAIL" }
+                            $gwMsg  = if ($pGate) { "Respondendo ($gw)" } else { "Sem resposta ($gw)" }
+                            Write-Item "Gateway " $gwMsg $gwSt
+                        } else {
+                            Write-Item "Gateway" "Nao encontrado" "WARN"
+                            $gwMsg = "Nao encontrado"
+                        }
+
+                        $pDNS   = Test-Connection -ComputerName 8.8.8.8 -Count 2 -Quiet
+                        $dnsSt  = if ($pDNS) { "OK" } else { "FAIL" }
+                        $dnsMsg = if ($pDNS) { "Respondendo (8.8.8.8)" } else { "Sem resposta (8.8.8.8)" }
+                        Write-Item "DNS      " $dnsMsg $dnsSt
+
+                        $pNet   = $false
+                        try { $pNet = [bool](Resolve-DnsName "google.com" -ErrorAction SilentlyContinue) } catch {}
+                        $intSt  = if ($pNet) { "OK" } else { "FAIL" }
+                        $intMsg = if ($pNet) { "Resolucao de DNS funcionando" } else { "Falha ao resolver nomes" }
+                        Write-Item "Internet" $intMsg $intSt
+
+                        Write-SectionFooter $CC
+                        $testResumo += "$($adapter.Description) | GW: $gwMsg | DNS: $dnsMsg | Internet: $intMsg"
+                    }
+
+                    Send-Report "Rede - Teste de Conectividade" "Gateway/DNS/Internet" ($testResumo -join " || ")
+                    Show-Pause
+                }
+                3 { 
+                    Show-Header
+                    Write-Host "  +======================================================+" -ForegroundColor $CC
+                    Write-Host "  |            RESETAR ADAPTADOR DE REDE                 |" -ForegroundColor $CC
+                    Write-Host "  +======================================================+" -ForegroundColor $CC
+                    Write-Host ""
+                    Write-Host "  Desativa e reativa o adaptador de rede fisicamente." -ForegroundColor $CG
+                    Write-Host "  Util quando a conexao esta instavel ou sem IP." -ForegroundColor $CG
+                    Write-Host ""
+                    Write-Host "  [WRN] A conexao sera interrompida por alguns segundos." -ForegroundColor $CY
+
+                    $confirm = Read-Host "`n  >> Resetar o adaptador agora? (S/N)"
+                    if ($confirm -eq 's' -or $confirm -eq 'S') {
+                        $adapters = Get-NetAdapter | Where-Object { $_.Status -eq "Up" }
+
+                        if (-not $adapters) {
+                            Write-Item "Adaptador" "Nenhum adaptador ativo encontrado" "WARN"
+                            Send-Report "Rede - Reset Adaptador" "Desativar/Reativar adaptador" "Nenhum adaptador ativo encontrado"
+                        } else {
+                            $adResumo = @()
+                            foreach ($adapter in $adapters) {
+                                Show-Progress "  Desativando $($adapter.Name) " 1000 $CC
+                                Disable-NetAdapter -Name $adapter.Name -Confirm:$false -ErrorAction SilentlyContinue
+                                Start-Sleep -Seconds 2
+
+                                Show-Progress "  Reativando $($adapter.Name)  " 1000 $CC
+                                Enable-NetAdapter -Name $adapter.Name -Confirm:$false -ErrorAction SilentlyContinue
+                                Start-Sleep -Seconds 3
+
+                                $status = (Get-NetAdapter -Name $adapter.Name).Status
+                                $adSt   = if ($status -eq "Up") { "OK" } else { "WARN" }
+                                $adMsg  = if ($status -eq "Up") { "Adaptador online novamente" } else { "Adaptador ainda inicializando..." }
+                                Write-SectionHeader "RESULTADO - $($adapter.Name)" $CC
+                                Write-Item "Status" $adMsg $adSt
+                                Write-SectionFooter $CC
+                                $adResumo += "$($adapter.Name): $adMsg"
+                            }
+                            Send-Report "Rede - Reset Adaptador" "Desativar/Reativar adaptador" ($adResumo -join " | ")
+                        }
+                    }
+                    Show-Pause
+                }
+                4 { return }
+            }
+        }
+    }
 }
 
 # ==========================================================
@@ -1341,38 +1412,44 @@ function Profile-LimpezaTudo {
 }
 
 function Clean-Profile {
-    do {
+    $Opcoes = @(
+        " [1] Limpar Temp do Usuario  (%TEMP%)                  ",
+        " [2] Limpar Temp do Sistema  (C:\Windows\Temp)         ",
+        " [3] Limpar Prefetch                                   ",
+        " [4] Limpeza Completa        (Tudo de uma vez)         ",
+        " [0] Voltar                                            "
+    )
+    $Selecao = 0
+    while ($true) {
+        [System.Console]::CursorVisible = $false
         Show-Header
         Write-Host "  +======================================================+" -ForegroundColor $CP
         Write-Host "  |          LIMPEZA DE PERFIL - MENU                    |" -ForegroundColor $CP
         Write-Host "  +======================================================+" -ForegroundColor $CP
-        Write-Host "  |  " -NoNewline -ForegroundColor $CP
-        Write-Host "[1]" -NoNewline -ForegroundColor $CN
-        Write-Host "  Limpar Temp do Usuario  (%TEMP%)              |" -ForegroundColor $CW
-        Write-Host "  |  " -NoNewline -ForegroundColor $CP
-        Write-Host "[2]" -NoNewline -ForegroundColor $CN
-        Write-Host "  Limpar Temp do Sistema  (C:\Windows\Temp)     |" -ForegroundColor $CW
-        Write-Host "  |  " -NoNewline -ForegroundColor $CP
-        Write-Host "[3]" -NoNewline -ForegroundColor $CN
-        Write-Host "  Limpar Prefetch                               |" -ForegroundColor $CW
-        Write-Host "  |  " -NoNewline -ForegroundColor $CP
-        Write-Host "[4]" -NoNewline -ForegroundColor $CN
-        Write-Host "  Limpeza Completa        (Tudo de uma vez)     |" -ForegroundColor $CW
-        Write-Host "  +------------------------------------------------------+" -ForegroundColor $CP
-        Write-Host "  |  " -NoNewline -ForegroundColor $CP
-        Write-Host "[0]" -NoNewline -ForegroundColor $CG
-        Write-Host "  Voltar                                        |" -ForegroundColor $CG
-        Write-Host "  +======================================================+" -ForegroundColor $CP
-
-        $c = Read-Host "`n  >> "
-        switch ($c) {
-            '1' { Profile-LimpezaTemp }
-            '2' { Profile-LimpezaSistema }
-            '3' { Profile-LimpezaPrefetch }
-            '4' { Profile-LimpezaTudo }
-            '0' { return }
+        for ($i = 0; $i -lt $Opcoes.Count; $i++) {
+            if ($i -eq $Selecao) { Write-Host "  > $($Opcoes[$i])" -BackgroundColor $CC -ForegroundColor Black } 
+            else { Write-Host "    $($Opcoes[$i])" -ForegroundColor $CW }
         }
-    } while ($true)
+        Write-Host "  +======================================================+" -ForegroundColor $CP
+        Write-Host "  Use as setas [CIMA/BAIXO] para navegar e [ENTER] para selecionar." -ForegroundColor $CG
+
+        $Tecla = [System.Console]::ReadKey($true).Key
+        if ($Tecla -eq 'UpArrow')   { $Selecao-- }
+        if ($Tecla -eq 'DownArrow') { $Selecao++ }
+        if ($Selecao -lt 0) { $Selecao = $Opcoes.Count - 1 }
+        if ($Selecao -ge $Opcoes.Count) { $Selecao = 0 }
+
+        if ($Tecla -eq 'Enter') {
+            [System.Console]::CursorVisible = $true 
+            switch ($Selecao) {
+                0 { Profile-LimpezaTemp }
+                1 { Profile-LimpezaSistema }
+                2 { Profile-LimpezaPrefetch }
+                3 { Profile-LimpezaTudo }
+                4 { return }
+            }
+        }
+    }
 }
 
 # ==========================================================
@@ -1624,96 +1701,146 @@ function Klingo-LimparCache {
 }
 
 function Klingo-Menu {
+    # Se ainda não escolheu o perfil nesta sessão, pergunta agora
+    if ($global:KlingoPerfil -eq "") {
+        $global:KlingoPerfil = Get-Chrome-Profile-List
+    }
+
     do {
         Show-Header
         Write-Host "  +======================================================+" -ForegroundColor $CN
         Write-Host "  |                KLINGO - MENU                         |" -ForegroundColor $CN
+        Write-Host "  |  Perfil Atual: $($global:KlingoPerfil.PadRight(34))  |" -ForegroundColor $CY
         Write-Host "  +======================================================+" -ForegroundColor $CN
-        Write-Host "  |  " -NoNewline -ForegroundColor $CN
-        Write-Host "[1]" -NoNewline -ForegroundColor $CN
-        Write-Host "  Reinstalar Klingo   (Desinstalar/Reinstalar)      |" -ForegroundColor $CW
-        Write-Host "  |  " -NoNewline -ForegroundColor $CN
-        Write-Host "[2]" -NoNewline -ForegroundColor $CN
-        Write-Host "  Limpar Cache        (Cache/LocalStorage/IndexedDB) |" -ForegroundColor $CW
+        
+        Write-Host "  |  [1] Reinstalar Klingo (Neste Perfil)              |" -ForegroundColor $CW
+        Write-Host "  |  [2] Limpar Cache      (Neste Perfil)              |" -ForegroundColor $CW
+        Write-Host "  |  [3] Trocar Perfil Selecionado                     |" -ForegroundColor $CC
         Write-Host "  +------------------------------------------------------+" -ForegroundColor $CN
-        Write-Host "  |  " -NoNewline -ForegroundColor $CN
-        Write-Host "[0]" -NoNewline -ForegroundColor $CG
-        Write-Host "  Voltar                                            |" -ForegroundColor $CG
+        Write-Host "  |  [0] Voltar                                        |" -ForegroundColor $CG
         Write-Host "  +======================================================+" -ForegroundColor $CN
 
         $c = Read-Host "`n  >> "
         switch ($c) {
             '1' { Reinstall-Klingo }
             '2' { Klingo-LimparCache }
+            '3' { $global:KlingoPerfil = Get-Chrome-Profile-List } # Permite trocar se errar
             '0' { return }
         }
     } while ($true)
 }
 
-# ==========================================================
-# MENU PRINCIPAL
-# ==========================================================
+
+function Get-Chrome-Profile-List {
+    $userDataPath = "$env:LOCALAPPDATA\Google\Chrome\User Data"
+    if (-not (Test-Path $userDataPath)) {
+        Write-Host "    [!] Erro: Google Chrome não encontrado nesta máquina." -ForegroundColor $CR
+        return $null
+    }
+
+    # Lista pastas que são perfis (Default ou Profile X)
+    $perfis = Get-ChildItem -Path $userDataPath -Directory | Where-Object { $_.Name -eq "Default" -or $_.Name -like "Profile*" }
+
+    Write-SectionHeader "SELECIONE O PERFIL DO CHROME" $CC
+    for ($i = 0; $i -lt $perfis.Count; $i++) {
+        Write-Host "    [$($i+1)] $($perfis[$i].Name)" -ForegroundColor $CW
+    }
+
+    $escolha = Read-Host "`n    >> Numero do perfil onde o Klingo sera instalado"
+    if ($escolha -match '^\d+$' -and [int]$escolha -le $perfis.Count) {
+        return $perfis[[int]$escolha - 1].Name
+    }
+    return "Default" # Fallback para o padrão caso dê erro
+}
 
 function QuickFix-Menu {
     Show-Intro
-    do {
-        Show-Header
-        Write-Host "  +======================================================+" -ForegroundColor $CP
-        Write-Host "  |                  MENU PRINCIPAL                      |" -ForegroundColor $CP
-        Write-Host "  +------------------------------------------------------+" -ForegroundColor $CP
-        Write-Host "  |  " -NoNewline -ForegroundColor $CP
-        Write-Host "[1]" -NoNewline -ForegroundColor $CN
-        Write-Host "  Diagnostico de Hardware   (CPU/RAM/GPU/Disco)    |" -ForegroundColor $CW
-        Write-Host "  |  " -NoNewline -ForegroundColor $CP
-        Write-Host "[2]" -NoNewline -ForegroundColor $CN
-        Write-Host "  Status de Rede            (IP/DNS/Pings)         |" -ForegroundColor $CW
-        Write-Host "  |  " -NoNewline -ForegroundColor $CP
-        Write-Host "[3]" -NoNewline -ForegroundColor $CN
-        Write-Host "  Diagnostico de Impressoras (Fila/IP/Porta)       |" -ForegroundColor $CW
-        Write-Host "  |  " -NoNewline -ForegroundColor $CP
-        Write-Host "[4]" -NoNewline -ForegroundColor $CN
-        Write-Host "  Otimizar RAM              (Mem-Reduct Engine)    |" -ForegroundColor $CW
-        Write-Host "  |  " -NoNewline -ForegroundColor $CP
-        Write-Host "[5]" -NoNewline -ForegroundColor $CC
-        Write-Host "  Reparar Rede              (Release/Renew/Winsock)|" -ForegroundColor $CW
-        Write-Host "  |  " -NoNewline -ForegroundColor $CP
-        Write-Host "[6]" -NoNewline -ForegroundColor $CR
-        Write-Host "  Reparar Windows           (SFC/DISM/Componentes) |" -ForegroundColor $CW
-        Write-Host "  |  " -NoNewline -ForegroundColor $CP
-        Write-Host "[7]" -NoNewline -ForegroundColor $CP
-        Write-Host "  Limpeza de Perfil         (%TEMP%/WinTemp/Prefetch)|" -ForegroundColor $CW
-        Write-Host "  |  " -NoNewline -ForegroundColor $CP
-        Write-Host "[8]" -NoNewline -ForegroundColor $CN
-        Write-Host "  Klingo                    (Reinstalar/Cache)      |" -ForegroundColor $CW
-        Write-Host "  +------------------------------------------------------+" -ForegroundColor $CP
-        Write-Host "  |  " -NoNewline -ForegroundColor $CP
-        Write-Host "[0]" -NoNewline -ForegroundColor $CG
-        Write-Host "  Sair                                             |" -ForegroundColor $CG
-        Write-Host "  +======================================================+" -ForegroundColor $CP
-        Write-Host ""
+    
+    $Opcoes = @(
+        " [1] Diagnostico de Hardware ",
+        " [2] Status de Rede          ",
+        " [3] Diagnostico Impressoras ",
+        " [4] Otimizar RAM            ",
+        " [5] Reparar Rede            ",
+        " [6] Reparar Windows         ",
+        " [7] Limpeza de Perfil       ",
+        " [8] Klingo                  ",
+        " [0] Sair                    "
+    )
+    
+    $Selecao = 0
 
-        $choice = Read-Host "  >> "
-        switch ($choice) {
-            '1' { Show-SystemInfo }
-            '2' { Show-NetworkInfo }
-            '3' { Printer-Diagnostics-Menu }
-            '4' { Optimize-Memory }
-            '5' { Repair-Network }
-            '6' { Repair-Windows }
-            '7' { Clean-Profile }
-            '8' { Klingo-Menu }
-            '0' {
-                Close-Report
-                Clear-Host
-                Write-Host ""
-                Write-Host "  +======================================================+" -ForegroundColor $CP
-                Write-Host "  |       QUICKFIX ENCERRADO -- ATE A PROXIMA!           |" -ForegroundColor $CN
-                Write-Host "  +======================================================+" -ForegroundColor $CP
-                Write-Host ""
-                return
+    while ($true) {
+        [System.Console]::CursorVisible = $false
+        Show-Header # Menu estático para não ter delay na seta
+        
+        Write-Host "  +======================================================+" -ForegroundColor $CP
+        Write-Host "  |                  SISTEMA OPERACIONAL                 |" -ForegroundColor $CP
+        Write-Host "  +------------------------------------------------------+" -ForegroundColor $CP
+        
+        for ($i = 0; $i -lt $Opcoes.Count; $i++) {
+            if ($i -eq $Selecao) {
+                # Item selecionado
+                Write-Host "  > $($Opcoes[$i])" -BackgroundColor $CC -ForegroundColor Black
+            } else {
+                # Itens normais
+                Write-Host "    $($Opcoes[$i])" -ForegroundColor $CW
             }
         }
-    } while ($true)
-}
+        
+        Write-Host "  +======================================================+" -ForegroundColor $CP
 
+        $Tecla = [System.Console]::ReadKey($true).Key
+        if ($Tecla -eq 'UpArrow')   { $Selecao-- }
+        if ($Tecla -eq 'DownArrow') { $Selecao++ }
+        if ($Selecao -lt 0) { $Selecao = $Opcoes.Count - 1 }
+        if ($Selecao -ge $Opcoes.Count) { $Selecao = 0 }
+
+        if ($Tecla -eq 'Enter') {
+            [System.Console]::CursorVisible = $true 
+            
+            # Chamada ao Show-Glitch removida para maior agilidade
+
+            switch ($Selecao) {
+                0 { Show-SystemInfo }
+                1 { Show-NetworkInfo }
+                2 { Printer-Diagnostics-Menu }
+                3 { Optimize-Memory }
+                4 { Repair-Network }
+                5 { Repair-Windows }
+                6 { Clean-Profile }
+                7 { Klingo-Menu }
+                8 {
+                    8 
+                    # OPÇÃO [0] SAIR - FINALIZAÇÃO COMPLETA
+                    Close-Report
+                    Clear-Host
+                    
+                    Write-Host "`n  +======================================================+" -ForegroundColor $CP
+                    Write-Host "  |                ENCERRANDO O QUICKFIX                 |" -ForegroundColor $CP
+                    Write-Host "  +======================================================+" -ForegroundColor $CP
+                    
+                    Write-Host "`n    Encerrando o QuickFix, obrigado, " -NoNewline -ForegroundColor $CW
+                    Write-Host "$($global:NomeTecnico)!" -ForegroundColor $CN
+                    
+                    if ($global:ArquivoSessao) {
+                        Write-Host "`n    [i] O relatorio desta sessao foi gerado em:" -ForegroundColor $CC
+                        Write-Host "    $($global:ArquivoSessao)" -ForegroundColor $CY
+                    }
+                    
+                    Write-Host "`n    Sessao finalizada. Status: " -NoNewline -ForegroundColor $CG
+                    Write-Host "[OFFLINE]" -ForegroundColor $CR
+                    
+                    Write-Host "  +======================================================+" -ForegroundColor $CP
+                    
+                    # Tempo maior (4s) para você conseguir ler o caminho do arquivo
+                    Start-Sleep -Seconds 4 
+                    exit 
+                }
+                }
+            }
+        }
+    }
+
+# Inicia o Sistema
 QuickFix-Menu
