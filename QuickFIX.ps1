@@ -154,13 +154,7 @@ function Show-Intro {
     Start-Sleep -Milliseconds 400
 
     # --- SISTEMA DE LOGIN INTEGRADO ---
-    $HashEsperado = "1c3c21cf186d4e9e762b01e1a40c2be8be57ed680b26e0fac2d0218bb09fc6b1" # sha256 de "suporte"
-    $hashTentativa = [System.BitConverter]::ToString(
-    [System.Security.Cryptography.SHA256]::Create().ComputeHash(
-        [System.Text.Encoding]::UTF8.GetBytes($tentativa)
-    )
-    ).Replace("-","").ToLower()
-        if ($hashTentativa -eq $HashEsperado) { ... }
+    $SenhaUniversal = "suporte" # Alterar senha
     $Autenticado    = $false
 
     Write-Host ""
