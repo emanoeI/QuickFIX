@@ -154,7 +154,13 @@ function Show-Intro {
     Start-Sleep -Milliseconds 400
 
     # --- SISTEMA DE LOGIN INTEGRADO ---
-    $SenhaUniversal = "suporte" # Alterar senha
+    $HashEsperado = "1c3c21cf186d4e9e762b01e1a40c2be8be57ed680b26e0fac2d0218bb09fc6b1" # sha256 de "suporte"
+    $hashTentativa = [System.BitConverter]::ToString(
+    [System.Security.Cryptography.SHA256]::Create().ComputeHash(
+        [System.Text.Encoding]::UTF8.GetBytes($tentativa)
+    )
+    ).Replace("-","").ToLower()
+        if ($hashTentativa -eq $HashEsperado) { ... }
     $Autenticado    = $false
 
     Write-Host ""
@@ -359,12 +365,16 @@ function Show-NetworkInfo {
 
     $resultados = @()
     $adapters = Safe-CimQuery "Win32_NetworkAdapterConfiguration" | Where-Object { $_.IPEnabled -eq $true }
+    
     foreach ($adapter in $adapters) {
         Write-SectionHeader $adapter.Description $CP
-        Write-Item "IP  " ($adapter.IPAddress -join ', ') "INFO"
+        Write-Item "IP Privado" ($adapter.IPAddress -join ', ') "INFO"
+        
         $dhcpMsg = if ($adapter.DHCPEnabled) { "Ativo" } else { "Estatico" }
         Write-Item "DHCP" $dhcpMsg "INFO"
+        
         Write-Item "DNS " ($adapter.DNSServerSearchOrder -join ', ') "INFO"
+        
         $pGate   = if ($adapter.DefaultIPGateway) { Test-Connection -ComputerName $adapter.DefaultIPGateway[0] -Count 1 -Quiet } else { $false }
         $pGoogle = Test-Connection -ComputerName 8.8.8.8 -Count 1 -Quiet
 
@@ -375,12 +385,83 @@ function Show-NetworkInfo {
 
         Write-Item "Gateway " $gateMsg $gateSt
         Write-Item "Internet" $netMsg  $netSt
-        Write-SectionFooter $CP
 
-        $resultados += "Adaptador: $($adapter.Description) | IP: $($adapter.IPAddress -join ',') | Gateway: $gateMsg | Internet: $netMsg"
+        $pingStr = "N/A"
+        $speedStr = "N/A"
+        $upStr = "N/A"
+        $publicIP = "N/A"
+        $ispName = "N/A"
+
+        if ($pGoogle) {
+            # --- BUSCA IP PÚBLICO E PROVEDOR ---
+            try {
+                $ipData = Invoke-RestMethod -Uri "http://ip-api.com/json/?fields=status,query,isp,city" -UseBasicParsing
+                if ($ipData.status -eq "success") {
+                    $publicIP = $ipData.query
+                    $ispName = $ipData.isp
+                    Write-Item "IP Publico" $publicIP "OK"
+                    Write-Item "Provedor  " $ispName "OK"
+                }
+            } catch {
+                Write-Item "IP Publico" "Erro ao obter" "WARN"
+            }
+
+            # --- INÍCIO DO TESTE DE PING ---
+            try {
+                $pingStats = Test-Connection -ComputerName 8.8.8.8 -Count 4 -ErrorAction SilentlyContinue
+                if ($pingStats) {
+                    $avgPing = [math]::Round(($pingStats | Measure-Object -Property ResponseTime -Average).Average)
+                    $pingStr = "$avgPing ms"
+                    $pingStatus = if ($avgPing -le 50) { "OK" } elseif ($avgPing -le 100) { "WARN" } else { "FAIL" }
+                    Write-Item "Ping      " $pingStr $pingStatus
+                }
+            } catch { Write-Item "Ping      " "Erro" "FAIL" }
+
+            # --- INÍCIO DO TESTE DE VELOCIDADE (OOKLA) ---
+            Write-Item "Speed     " "Iniciando motor Ookla..." "INFO"
+         
+            Write-Item "Aviso" "Utilizando motor Speedtest (Ookla CLI)" "INFO"
+            Write-Item "Termos" "speedtest.net/about/terms" "INFO"
+            try {
+                $tempDir = Join-Path $env:TEMP "QuickFix_Speedtest"
+                if (-not (Test-Path $tempDir)) { New-Item -ItemType Directory -Path $tempDir | Out-Null }
+                $zipPath = Join-Path $tempDir "speedtest.zip"
+                $exePath = Join-Path $tempDir "speedtest.exe"
+                
+                if (-not (Test-Path $exePath)) {
+                    $cliUrl = "https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-win64.zip"
+                    Invoke-WebRequest -Uri $cliUrl -OutFile $zipPath -UseBasicParsing
+                    Expand-Archive -Path $zipPath -DestinationPath $tempDir -Force
+                }
+                
+                $speedResult = & $exePath --accept-license --accept-gdpr -f jsonl | ForEach-Object {
+                    if ($_ -match "^\s*{") {
+                        $data = $_ | ConvertFrom-Json
+                        if ($data.type -eq "ping") { Write-Progress -Activity "OOKLA SPEEDTEST" -Status "Ping: $([math]::Round($data.ping.latency, 1)) ms" -PercentComplete ([int]($data.ping.progress * 100)) -Id 1 }
+                        elseif ($data.type -eq "download") { Write-Progress -Activity "OOKLA SPEEDTEST" -Status "Download: $([math]::Round(($data.download.bandwidth * 8) / 1000000, 2)) Mbps" -PercentComplete ([int]($data.download.progress * 100)) -Id 1 }
+                        elseif ($data.type -eq "upload") { Write-Progress -Activity "OOKLA SPEEDTEST" -Status "Upload: $([math]::Round(($data.upload.bandwidth * 8) / 1000000, 2)) Mbps" -PercentComplete ([int]($data.upload.progress * 100)) -Id 1 }
+                        elseif ($data.type -eq "result") { $data }
+                    }
+                }
+                Write-Progress -Activity "OOKLA SPEEDTEST" -Completed -Id 1
+                
+                $downMbps = [math]::Round(($speedResult.download.bandwidth * 8) / 1000000, 2)
+                $upMbps   = [math]::Round(($speedResult.upload.bandwidth * 8) / 1000000, 2)
+                $speedStr = "$downMbps Mbps"
+                $upStr    = "$upMbps Mbps"
+                
+                Write-Item "Download  " $speedStr (if ($downMbps -ge 200) { "OK" } else { "WARN" })
+                Write-Item "Upload    " $upStr (if ($upMbps -ge 50) { "OK" } else { "WARN" })
+            }
+            catch { Write-Progress -Activity "OOKLA SPEEDTEST" -Completed -Id 1; Write-Item "Speed     " "Falha" "FAIL" }
+            finally { if (Test-Path $tempDir) { Remove-Item $tempDir -Recurse -Force } }
+        }
+
+        Write-SectionFooter $CP
+        $resultados += "Adaptador: $($adapter.Description) | PubIP: $publicIP | ISP: $ispName | Ping: $pingStr | Down: $speedStr | Up: $upStr"
     }
 
-    Send-Report "Status de Rede" "IP, DNS, Pings, Gateway" ($resultados -join " || ")
+    Send-Report "Status de Rede" "Detecção Completa" ($resultados -join " || ")
     Show-Pause
 }
 
