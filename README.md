@@ -30,7 +30,7 @@ O **QuickFix** é uma ferramenta de terminal interativa desenvolvida para agiliz
 | Categoria | Funcionalidades |
 | :--- | :--- |
 | 🖥️ **Hardware** | Mapeamento completo de CPU, RAM, GPU e integridade de armazenamento (SSD/HDD). |
-| 🌐 **Rede** | Reset de stack TCP/IP, limpeza de cache DNS, renovação de concessão DHCP e testes de latência. |
+| 🌐 **Rede** | Reset de stack TCP/IP, limpeza de cache DNS, renovação de concessão DHCP e testes de download e upload com API da speedtest.net. |
 | 🖨️ **Impressoras** | Diagnóstico de filas, mapeamento de portas IP e envio de página de teste exclusiva para suporte. |
 | 🧠 **Otimização** | Motor de limpeza de memória RAM e aplicação de flags de performance para navegadores. |
 | 🛠️ **Reparo OS** | Automatização de rotinas DISM e SFC com interpretação de códigos de saída. |
