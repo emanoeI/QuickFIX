@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuickFIX</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,600;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+
+/* ─── reset ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+/* ─── tokens ─────────────────────────────────────────── */
+:root {
+  --bg:        #060908;
+  --bg2:       #0b100e;
+  --line:      #141f19;
+  --g0:        #00ff6a;   /* verde vivo */
+  --g1:        #00c850;   /* verde médio */
+  --g2:        #1a4a2e;   /* verde escuro */
+  --c0:        #00e5cc;   /* ciano */
+  --m0:        #c678ff;   /* lilás */
+  --y0:        #e5c07b;   /* amarelo */
+  --r0:        #e06c75;   /* vermelho */
+  --tx:        #abb2bf;   /* texto */
+  --tx2:       #4b5563;   /* texto fraco */
+  --mono:      'IBM Plex Mono', monospace;
+  --sans:      'DM Sans', sans-serif;
+}
+
+/* ─── body / scanlines ───────────────────────────────── */
+body {
+  background: var(--bg);
+  color: var(--tx);
+  font-family: var(--mono);
+  overflow-x: hidden;
+  cursor: default;
+}
+
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px, transparent 3px,
+    rgba(0,255,106,0.012) 3px, rgba(0,255,106,0.012) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ─── animações de entrada ───────────────────────────── */
+@keyframes fadeUp   { from { opacity:0; transform:translateY(24px) } to { opacity:1; transform:none } }
+@keyframes fadeIn   { from { opacity:0 } to { opacity:1 } }
+@keyframes slideIn  { from { opacity:0; transform:translateX(-16px) } to { opacity:1; transform:none } }
+@keyframes blink    { 0%,100%{opacity:1} 50%{opacity:0} }
+@keyframes glow     { 0%,100%{text-shadow:0 0 8px rgba(0,255,106,.4)} 50%{text-shadow:0 0 24px rgba(0,255,106,.8),0 0 48px rgba(0,255,106,.3)} }
+@keyframes scanMove { from{top:-100%} to{top:100%} }
+@keyframes pulse    { 0%,100%{opacity:.6} 50%{opacity:1} }
+
+.reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity .7s ease, transform .7s ease;
+}
+.reveal.visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* ─── noise texture ──────────────────────────────────── */
+.noise {
+  position: relative;
+}
+.noise::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ═══════════════════════════════════════════════════════
+   HERO
+════════════════════════════════════════════════════════ */
+#hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem 6rem;
+  position: relative;
+  overflow: hidden;
+}
+
+/* grade de fundo */
+#hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 20%, transparent 75%);
+  opacity: .6;
+}
+
+/* blob de luz verde */
+#hero .glow-blob {
+  position: absolute;
+  width: 600px; height: 400px;
+  background: radial-gradient(ellipse, rgba(0,255,106,.07) 0%, transparent 70%);
+  top: 50%; left: 50%;
+  transform: translate(-50%, -55%);
+  pointer-events: none;
+}
+
+/* scan line animada */
+#hero .scan-line {
+  position: absolute;
+  left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(0,255,106,.15), transparent);
+  animation: scanMove 6s linear infinite;
+  pointer-events: none;
+}
+
+/* ─── logo ascii ─────────────────────────────────────── */
+.ascii-wrap {
+  position: relative;
+  z-index: 1;
+  opacity: 0;
+  animation: fadeIn .2s ease .1s forwards;
+}
+
+.ascii-logo {
+  font-size: clamp(4.5px, 1vw, 11px);
+  line-height: 1.15;
+  white-space: pre;
+  letter-spacing: 0;
+  user-select: none;
+}
+
+.ascii-logo .l0 { color: #1a3d25; }
+.ascii-logo .l1 { color: #1e5c30; }
+.ascii-logo .l2 { color: #267a3d; }
+.ascii-logo .l3 { color: #2ea64e; }
+.ascii-logo .l4 { color: var(--g0); text-shadow: 0 0 16px rgba(0,255,106,.5); }
+.ascii-logo .l5 { color: #2ea64e; }
+.ascii-logo .l6 { color: #267a3d; }
+.ascii-logo .l7 { color: #1e5c30; }
+.ascii-logo .l8 { color: #1a3d25; }
+
+/* ─── tagline ────────────────────────────────────────── */
+.hero-sub {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  margin-top: 2.5rem;
+  opacity: 0;
+  animation: fadeUp .8s ease .6s forwards;
+}
+
+.hero-sub .tagline {
+  font-size: clamp(.75rem, 1.5vw, .95rem);
+  color: var(--tx2);
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  margin-bottom: .6rem;
+}
+
+.hero-sub .tagline span { color: var(--g0); }
+
+.hero-sub h1 {
+  font-family: var(--sans);
+  font-size: clamp(1.4rem, 3vw, 2.2rem);
+  font-weight: 300;
+  color: #e8f0ea;
+  letter-spacing: -.01em;
+  line-height: 1.2;
+}
+
+.hero-sub h1 strong {
+  font-weight: 500;
+  color: #fff;
+}
+
+/* ─── badges ─────────────────────────────────────────── */
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+  justify-content: center;
+  margin-top: 1.6rem;
+}
+
+.badge {
+  font-size: .68rem;
+  letter-spacing: .08em;
+  padding: .25rem .7rem;
+  border: 1px solid;
+  text-transform: uppercase;
+  transition: background .2s;
+}
+.badge-g { border-color: var(--g2); color: var(--g1); }
+.badge-g:hover { background: var(--g2); }
+.badge-c { border-color: #0d3030; color: var(--c0); }
+.badge-m { border-color: #2a1540; color: var(--m0); }
+
+/* ─── botões ─────────────────────────────────────────── */
+.hero-btns {
+  display: flex;
+  gap: .8rem;
+  margin-top: 2.2rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  opacity: 0;
+  animation: fadeUp .8s ease .9s forwards;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .6rem 1.4rem;
+  font-family: var(--mono);
+  font-size: .8rem;
+  letter-spacing: .05em;
+  text-decoration: none;
+  transition: all .2s;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: var(--g0);
+  color: #000;
+  font-weight: 600;
+}
+.btn-primary:hover { background: #fff; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,255,106,.2); }
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--tx2);
+}
+.btn-ghost:hover { border-color: var(--g2); color: var(--g1); transform: translateY(-2px); }
+
+/* ─── scroll hint ────────────────────────────────────── */
+.scroll-hint {
+  position: absolute;
+  bottom: 2.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .4rem;
+  color: var(--tx2);
+  font-size: .65rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  animation: pulse 2s ease infinite;
+  z-index: 1;
+}
+
+.scroll-hint::after {
+  content: '';
+  width: 1px;
+  height: 40px;
+  background: linear-gradient(to bottom, var(--tx2), transparent);
+}
+
+/* ═══════════════════════════════════════════════════════
+   TERMINAL INTERATIVO
+════════════════════════════════════════════════════════ */
+#terminal-section {
+  padding: 6rem 2rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.section-eyebrow {
+  font-size: .7rem;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--g0);
+  margin-bottom: .6rem;
+}
+
+.section-title {
+  font-family: var(--sans);
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  font-weight: 300;
+  color: #e8f0ea;
+  margin-bottom: .5rem;
+}
+
+.section-title strong { font-weight: 500; color: #fff; }
+
+.section-desc {
+  color: var(--tx2);
+  font-size: .85rem;
+  margin-bottom: 2.5rem;
+  max-width: 480px;
+  line-height: 1.7;
+}
+
+/* janela do terminal */
+.term-window {
+  background: #030504;
+  border: 1px solid var(--line);
+  box-shadow:
+    0 0 0 1px rgba(0,255,106,.04),
+    0 24px 64px rgba(0,0,0,.7),
+    0 0 80px rgba(0,255,106,.04);
+  overflow: hidden;
+}
+
+.term-bar {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--line);
+  padding: .65rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+
+.term-dot { width: 10px; height: 10px; border-radius: 50%; }
+.td-r { background: #ff5f57; }
+.td-y { background: #febc2e; }
+.td-g { background: #28c840; }
+
+.term-title {
+  flex: 1;
+  text-align: center;
+  font-size: .72rem;
+  color: var(--tx2);
+  letter-spacing: .08em;
+}
+
+.term-body {
+  padding: 1.4rem 1.6rem;
+  font-size: .78rem;
+  line-height: 1.9;
+  min-height: 320px;
+}
+
+/* cores do terminal */
+.t-g  { color: var(--g0); }
+.t-g1 { color: var(--g1); }
+.t-c  { color: var(--c0); }
+.t-m  { color: var(--m0); }
+.t-y  { color: var(--y0); }
+.t-r  { color: var(--r0); }
+.t-w  { color: #abb2bf; }
+.t-d  { color: #3d4a42; }
+.t-dim{ color: var(--tx2); }
+
+/* linha de input */
+.term-input-line {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin-top: .4rem;
+  padding: .6rem 1.6rem;
+  border-top: 1px solid var(--line);
+}
+
+.term-prompt { color: var(--g0); font-size: .78rem; white-space: nowrap; }
+
+#term-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-family: var(--mono);
+  font-size: .78rem;
+  caret-color: var(--g0);
+}
+
+/* sugestões */
+.term-hints {
+  padding: .4rem 1.6rem .8rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .3rem;
+}
+
+.hint-pill {
+  font-size: .64rem;
+  padding: .15rem .55rem;
+  border: 1px solid var(--line);
+  color: var(--tx2);
+  cursor: pointer;
+  transition: all .15s;
+  letter-spacing: .04em;
+}
+.hint-pill:hover { border-color: var(--g2); color: var(--g1); background: rgba(0,255,106,.04); }
+
+/* cursor piscante */
+.cur {
+  display: inline-block;
+  width: 8px; height: 1em;
+  background: var(--g0);
+  vertical-align: text-bottom;
+  animation: blink 1s step-end infinite;
+}
+
+/* ═══════════════════════════════════════════════════════
+   MÓDULOS
+════════════════════════════════════════════════════════ */
+#modules {
+  padding: 6rem 2rem;
+  border-top: 1px solid var(--line);
+}
+
+.modules-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.modules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  margin-top: 3rem;
+}
+
+.mod-card {
+  background: var(--bg);
+  padding: 1.6rem 1.4rem;
+  position: relative;
+  overflow: hidden;
+  transition: background .2s;
+}
+
+.mod-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 2px; height: 0;
+  transition: height .3s ease;
+}
+
+.mod-card:hover { background: var(--bg2); }
+.mod-card:hover::before { height: 100%; }
+
+.mc-g::before  { background: var(--g0); }
+.mc-c::before  { background: var(--c0); }
+.mc-y::before  { background: var(--y0); }
+.mc-m::before  { background: var(--m0); }
+.mc-r::before  { background: var(--r0); }
+
+.mod-num {
+  font-size: .62rem;
+  color: var(--tx2);
+  letter-spacing: .15em;
+  margin-bottom: .6rem;
+}
+
+.mod-card h3 {
+  font-family: var(--sans);
+  font-size: .95rem;
+  font-weight: 500;
+  color: #dde6df;
+  margin-bottom: .8rem;
+}
+
+.mod-card ul { list-style: none; }
+.mod-card li {
+  font-size: .74rem;
+  color: var(--tx2);
+  padding: .15rem 0 .15rem .9rem;
+  position: relative;
+  line-height: 1.5;
+}
+.mod-card li::before {
+  content: '›';
+  position: absolute;
+  left: 0;
+  color: var(--g2);
+}
+
+/* ═══════════════════════════════════════════════════════
+   SOBRE / AUTOR
+════════════════════════════════════════════════════════ */
+#about {
+  padding: 6rem 2rem;
+  border-top: 1px solid var(--line);
+}
+
+.about-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5rem;
+  align-items: start;
+}
+
+@media (max-width: 720px) {
+  .about-inner { grid-template-columns: 1fr; gap: 3rem; }
+}
+
+/* card do autor */
+.author-card {
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  padding: 2rem;
+}
+
+.author-tag {
+  font-size: .65rem;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--g0);
+  margin-bottom: 1rem;
+}
+
+.author-name {
+  font-family: var(--sans);
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: #fff;
+  margin-bottom: .3rem;
+}
+
+.author-role {
+  font-size: .78rem;
+  color: var(--tx2);
+  margin-bottom: 1.6rem;
+}
+
+.author-role span { color: var(--g1); }
+
+.author-bio {
+  font-size: .82rem;
+  line-height: 1.8;
+  color: var(--tx);
+  margin-bottom: 1.6rem;
+  font-family: var(--sans);
+  font-weight: 300;
+}
+
+.author-stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem;
+}
+
+.stack-tag {
+  font-size: .65rem;
+  padding: .2rem .55rem;
+  background: rgba(0,255,106,.06);
+  border: 1px solid var(--g2);
+  color: var(--g1);
+  letter-spacing: .05em;
+}
+
+/* lado direito — contexto do projeto */
+.project-context { }
+
+.context-item {
+  display: flex;
+  gap: 1rem;
+  padding: 1.2rem 0;
+  border-bottom: 1px solid var(--line);
+}
+.context-item:last-child { border-bottom: none; }
+
+.ctx-num {
+  font-size: .65rem;
+  color: var(--g0);
+  padding-top: .15rem;
+  flex-shrink: 0;
+  width: 1.5rem;
+}
+
+.ctx-content h4 {
+  font-family: var(--sans);
+  font-size: .88rem;
+  font-weight: 500;
+  color: #dde6df;
+  margin-bottom: .3rem;
+}
+
+.ctx-content p {
+  font-size: .78rem;
+  color: var(--tx2);
+  line-height: 1.7;
+  font-family: var(--sans);
+  font-weight: 300;
+}
+
+/* ═══════════════════════════════════════════════════════
+   INSTALAÇÃO
+════════════════════════════════════════════════════════ */
+#install {
+  padding: 6rem 2rem;
+  border-top: 1px solid var(--line);
+}
+
+.install-inner {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.code-block {
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  padding: 1.4rem 1.6rem;
+  font-size: .78rem;
+  line-height: 1.9;
+  overflow-x: auto;
+  position: relative;
+  margin-top: 1rem;
+  transition: border-color .2s;
+}
+.code-block:hover { border-color: var(--g2); }
+
+.code-block .cmt { color: var(--tx2); }
+.code-block .kw  { color: var(--m0); }
+.code-block .str { color: var(--y0); }
+.code-block .cmd { color: var(--c0); }
+.code-block .val { color: var(--g0); }
+
+.copy-btn {
+  position: absolute;
+  top: .7rem; right: .7rem;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--tx2);
+  font-family: var(--mono);
+  font-size: .62rem;
+  padding: .2rem .5rem;
+  cursor: pointer;
+  letter-spacing: .06em;
+  transition: all .15s;
+}
+.copy-btn:hover { border-color: var(--g2); color: var(--g1); }
+.copy-btn.copied { color: var(--g0); border-color: var(--g2); }
+
+/* tabs */
+.tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--line);
+  margin-top: 2.5rem;
+}
+
+.tab-btn {
+  font-family: var(--mono);
+  font-size: .72rem;
+  padding: .55rem 1.1rem;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--tx2);
+  cursor: pointer;
+  letter-spacing: .06em;
+  transition: all .15s;
+  margin-bottom: -1px;
+}
+.tab-btn:hover { color: var(--tx); }
+.tab-btn.active { color: var(--g0); border-bottom-color: var(--g0); }
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ═══════════════════════════════════════════════════════
+   FOOTER
+════════════════════════════════════════════════════════ */
+footer {
+  border-top: 1px solid var(--line);
+  padding: 2.5rem 2rem;
+  text-align: center;
+  font-size: .72rem;
+  color: var(--tx2);
+}
+
+footer a { color: var(--g1); text-decoration: none; }
+footer a:hover { color: var(--g0); }
+
+.footer-logo {
+  font-size: .65rem;
+  color: var(--line);
+  margin-top: .6rem;
+  letter-spacing: .06em;
+}
+
+</style>
+</head>
+<body>
+
+<!-- ══ HERO ══════════════════════════════════════════════ -->
+<section id="hero" class="noise">
+  <div class="glow-blob"></div>
+  <div class="scan-line"></div>
+
+  <div class="ascii-wrap">
+    <pre class="ascii-logo"><span class="l0">.----------------------------------------------------------------------------------------.</span>
+<span class="l1">|..#######.....##.....##....####.....######.....##....##....########....####....##.....##|</span>
+<span class="l2">|.##.....##....##.....##.....##.....##....##....##...##.....##...........##......##...##.|</span>
+<span class="l3">|.##.....##....##.....##.....##.....##..........##..##......##...........##.......##.##..|</span>
+<span class="l4">|.##.....##....##.....##.....##.....##..........#####.......######.......##........###...|</span>
+<span class="l5">|.##..##.##....##.....##.....##.....##..........##..##......##...........##.......##.##..|</span>
+<span class="l6">|.##....##.....##.....##.....##.....##....##....##...##.....##...........##......##...##.|</span>
+<span class="l7">|..#####.##.....#######.....####.....######.....##....##....##..........####....##.....##|</span>
+<span class="l8">'----------------------------------------------------------------------------------------'</span></pre>
+  </div>
+
+  <div class="hero-sub">
+    <p class="tagline">por <span>Emanoel Peres</span> &nbsp;·&nbsp; para técnicos e</p>
+    <h1>Um toolkit que eu <strong>precisava</strong><br>então fiz o meu próprio.</h1>
+    <div class="badges">
+      <span class="badge badge-g">PowerShell </span>
+      <span class="badge badge-g">Windows 10/11</span>
+      <span class="badge badge-c">8 módulos</span>
+      <span class="badge badge-m">portfólio pessoal</span>
+    </div>
+  </div>
+
+  <div class="hero-btns">
+    <a href="https://github.com/emanoeI/QuickFIX" target="_blank" class="btn btn-primary">▶ GitHub</a>
+    <a href="https://raw.githubusercontent.com/emanoeI/QuickFIX/main/QuickFIX.ps1" target="_blank" class="btn btn-ghost">↓ QuickFIX.ps1</a>
+  </div>
+
+  <div class="scroll-hint">scroll</div>
+</section>
+
+<!-- ══ TERMINAL INTERATIVO ════════════════════════════════ -->
+<section id="terminal-section">
+  <p class="section-eyebrow reveal">// experimente</p>
+  <h2 class="section-title reveal">Terminal <strong>ao vivo.</strong></h2>
+  <p class="section-desc reveal">Digite um comando ou clique nas sugestões para ver como o QuickFIX responderia no terminal real.</p>
+
+  <div class="term-window reveal">
+    <div class="term-bar">
+      <div class="term-dot td-r"></div>
+      <div class="term-dot td-y"></div>
+      <div class="term-dot td-g"></div>
+      <span class="term-title">Windows PowerShell — QuickFIX v1.0 — DESKTOP-FARMACIA</span>
+    </div>
+
+    <div class="term-body" id="term-output">
+      <div><span class="t-dim">  >> SYSTEM INIT       ............ </span><span class="t-g">[ OK ]</span></div>
+      <div><span class="t-dim">  >> LOADING MODULES   ............ </span><span class="t-g">[ OK ]</span></div>
+      <div><span class="t-dim">  >> CHECKING PRIVILEGES .......... </span><span class="t-g">[ OK ]</span></div>
+      <div><span class="t-dim">  >> WMI/CIM INTERFACE ............ </span><span class="t-g">[ OK ]</span></div>
+      <br>
+      <div><span class="t-g">  Bem-vindo, Tecnico.</span> <span class="t-dim">Sessão iniciada às 09:14:22</span></div>
+      <br>
+      <div class="t-dim">  Digite um módulo ou use as sugestões abaixo <span class="cur"></span></div>
+    </div>
+
+    <div class="term-input-line">
+      <span class="term-prompt">PS C:\QuickFIX&gt;&nbsp;</span>
+      <input type="text" id="term-input" placeholder="ex: hardware" autocomplete="off" spellcheck="false">
+    </div>
+
+    <div class="term-hints">
+      <span class="hint-pill" data-cmd="hardware">hardware</span>
+      <span class="hint-pill" data-cmd="rede">rede</span>
+      <span class="hint-pill" data-cmd="ram">ram</span>
+      <span class="hint-pill" data-cmd="impressora">impressora</span>
+      <span class="hint-pill" data-cmd="sfc">sfc</span>
+      <span class="hint-pill" data-cmd="limpeza">limpeza</span>
+      <span class="hint-pill" data-cmd="speedtest">speedtest</span>
+      <span class="hint-pill" data-cmd="ajuda">ajuda</span>
+    </div>
+  </div>
+</section>
+
+<!-- ══ MÓDULOS ════════════════════════════════════════════ -->
+<section id="modules">
+  <div class="modules-inner">
+    <p class="section-eyebrow reveal">// o que ele faz</p>
+    <h2 class="section-title reveal">8 módulos, <strong>zero instalação.</strong></h2>
+    <p class="section-desc reveal">Roda direto da memória ou do arquivo local. Cada módulo é isolado — uma falha não afeta os outros.</p>
+
+    <div class="modules-grid reveal">
+
+      <div class="mod-card mc-g">
+        <div class="mod-num">01</div>
+        <h3>Hardware</h3>
+        <ul>
+          <li>CPU, RAM por slot e velocidade</li>
+          <li>GPU e versão de driver</li>
+          <li>SSD/HDD com alerta de espaço</li>
+          <li>OS, build e placa-mãe</li>
+        </ul>
+      </div>
+
+      <div class="mod-card mc-c">
+        <div class="mod-num">02</div>
+        <h3>Rede</h3>
+        <ul>
+          <li>IP, DHCP e DNS do adaptador</li>
+          <li>IP público e provedor (ip-api)</li>
+          <li>Latência média (4 amostras)</li>
+          <li>Speedtest via Ookla CLI</li>
+        </ul>
+      </div>
+
+      <div class="mod-card mc-y">
+        <div class="mod-num">03</div>
+        <h3>Impressoras</h3>
+        <ul>
+          <li>Status e fila de jobs</li>
+          <li>Reiniciar / limpar Spooler</li>
+          <li>Definir impressora padrão</li>
+          <li>Forçar online + página de teste</li>
+        </ul>
+      </div>
+
+      <div class="mod-card mc-g">
+        <div class="mod-num">04</div>
+        <h3>RAM</h3>
+        <ul>
+          <li>Limpeza via psapi.dll</li>
+          <li>Chrome/Edge sem fechar abas</li>
+          <li>Tab Discarding automático</li>
+        </ul>
+      </div>
+
+      <div class="mod-card mc-c">
+        <div class="mod-num">05</div>
+        <h3>Reparo de Rede</h3>
+        <ul>
+          <li>Release / Renew / Winsock reset</li>
+          <li>Flush DNS isolado</li>
+          <li>Reset físico do adaptador</li>
+        </ul>
+      </div>
+
+      <div class="mod-card mc-r">
+        <div class="mod-num">06</div>
+        <h3>Reparo Windows</h3>
+        <ul>
+          <li>DISM RestoreHealth</li>
+          <li>SFC Scannow</li>
+          <li>Limpeza WinSxS</li>
+        </ul>
+      </div>
+
+      <div class="mod-card mc-m">
+        <div class="mod-num">07</div>
+        <h3>Limpeza</h3>
+        <ul>
+          <li>%TEMP% do usuário</li>
+          <li>C:\Windows\Temp</li>
+          <li>Prefetch</li>
+        </ul>
+      </div>
+
+      <div class="mod-card mc-g">
+        <div class="mod-num">08</div>
+        <h3>Klingo</h3>
+        <ul>
+          <li>Reinstalação limpa do PWA</li>
+          <li>Cache, LocalStorage, IndexedDB</li>
+          <li>Seleção de perfil do Chrome</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══ SOBRE ══════════════════════════════════════════════ -->
+<section id="about">
+  <div class="about-inner">
+
+    <div class="author-card reveal">
+      <div class="author-tag">// autor</div>
+      <div class="author-name">Emanoel Peres</div>
+      <div class="author-role">Estudante de TI &nbsp;·&nbsp; <span>Analista e Desenvolvedor de Sistemas</span></div>
+      <p class="author-bio">
+        Comecei o QuickFIX porque o suporte do dia a dia repetia sempre os mesmos passos 
+        em máquinas diferentes — e cada técnico fazia de um jeito. Quis padronizar, 
+        registrar e, de quebra, aprender PowerShell de verdade.
+      </p>
+      <div class="author-stack">
+        <span class="stack-tag">PowerShell</span>
+        <span class="stack-tag">Windows</span>
+        <span class="stack-tag">WMI/CIM</span>
+        <span class="stack-tag">HTML/CSS</span>
+        <span class="stack-tag">Redes</span>
+        <span class="stack-tag">Git</span>
+      </div>
+    </div>
+
+    <div class="project-context reveal">
+      <div class="section-eyebrow" style="margin-bottom:1.5rem">// por que existe</div>
+
+      <div class="context-item">
+        <span class="ctx-num">01</span>
+        <div class="ctx-content">
+          <h4>Problema real</h4>
+          <p>Mesmo diagnóstico, executado de formas diferentes por técnicos diferentes. Sem registro, sem padrão, sem rastreabilidade.</p>
+        </div>
+      </div>
+
+      <div class="context-item">
+        <span class="ctx-num">02</span>
+        <div class="ctx-content">
+          <h4>Solução construída no estágio</h4>
+          <p>Desenvolvido durante o período de estágio, testado em máquinas reais do ambiente corporativo. Não é projeto de faculdade — é ferramenta em uso.</p>
+        </div>
+      </div>
+
+      <div class="context-item">
+        <span class="ctx-num">03</span>
+        <div class="ctx-content">
+          <h4>Relatório automático por sessão</h4>
+          <p>Cada atendimento gera um .txt com técnico, máquina, IP e resultado de cada ação. Auditável e arquivável sem esforço extra.</p>
+        </div>
+      </div>
+
+      <div class="context-item">
+        <span class="ctx-num">04</span>
+        <div class="ctx-content">
+          <h4>Zero dependência</h4>
+          <p>Roda em qualquer Windows 10/11 com PS5 nativo. Sem instalar nada, sem precisar de admin de domínio, sem configuração prévia.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══ INSTALAÇÃO ═════════════════════════════════════════ -->
+<section id="install">
+  <div class="install-inner">
+    <p class="section-eyebrow reveal">// como usar</p>
+    <h2 class="section-title reveal">Pronto em <strong>uma linha.</strong></h2>
+    <p class="section-desc reveal">Sem instalação. Cole no PowerShell e rode.</p>
+
+    <div class="tabs reveal">
+      <button class="tab-btn active" onclick="switchTab(0)">Em memória</button>
+      <button class="tab-btn" onclick="switchTab(1)">Download local</button>
+      <button class="tab-btn" onclick="switchTab(2)">irm (curto)</button>
+    </div>
+
+    <div class="tab-panel active reveal" id="tp0">
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">copiar</button>
+        <span class="cmt"># proxy-friendly — executa direto da memória</span><br>
+        <span class="kw">$wc</span> = <span class="cmd">New-Object</span> Net.WebClient<br>
+        <span class="kw">$wc</span>.Proxy.Credentials = [Net.CredentialCache]::DefaultNetworkCredentials<br>
+        <span class="cmd">IEX</span> <span class="kw">$wc</span>.DownloadString(<span class="str">'https://raw.githubusercontent.com/emanoeI/QuickFIX/main/QuickFIX.ps1'</span>)
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tp1">
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">copiar</button>
+        <span class="cmt"># salva o arquivo antes de executar</span><br>
+        <span class="kw">$wc</span> = <span class="cmd">New-Object</span> Net.WebClient<br>
+        <span class="kw">$wc</span>.Proxy.Credentials = [Net.CredentialCache]::DefaultNetworkCredentials<br>
+        <span class="kw">$wc</span>.DownloadFile(<span class="str">'https://raw.githubusercontent.com/emanoeI/QuickFIX/main/QuickFIX.ps1'</span>, <span class="str">'QuickFIX.ps1'</span>)<br>
+        powershell <span class="cmd">-ExecutionPolicy</span> Bypass <span class="cmd">-File</span> .\QuickFIX.ps1
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tp2">
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">copiar</button>
+        <span class="cmt"># método curto</span><br>
+        powershell <span class="cmd">-ExecutionPolicy</span> Bypass <span class="cmd">-Command</span> <span class="str">"iex (irm https://raw.githubusercontent.com/emanoeI/QuickFIX/main/QuickFIX.ps1)"</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══ FOOTER ════════════════════════════════════════════ -->
+<footer>
+  <p>
+    <a href="https://github.com/emanoeI" target="_blank">Emanoel Peres</a>
+    &nbsp;·&nbsp;
+    <a href="https://github.com/emanoeI/QuickFIX" target="_blank">github.com/emanoeI/QuickFIX</a>
+    &nbsp;·&nbsp; MIT License
+  </p>
+  <p class="footer-logo">.----------------------------------------------------------------------------------------.</p>
+</footer>
+
+<!-- ══ JAVASCRIPT ════════════════════════════════════════ -->
+<script>
+
+// ─── reveal on scroll ──────────────────────────────────
+const revealEls = document.querySelectorAll('.reveal');
+const observer = new IntersectionObserver(entries => {
+  entries.forEach((e, i) => {
+    if (e.isIntersecting) {
+      setTimeout(() => e.target.classList.add('visible'), i * 80);
+      observer.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.1 });
+revealEls.forEach(el => observer.observe(el));
+
+// ─── logo: animar linha a linha ────────────────────────
+const logoLines = document.querySelectorAll('.ascii-logo span');
+logoLines.forEach((line, i) => {
+  line.style.opacity = '0';
+  line.style.transition = `opacity 0.15s ease ${i * 0.06}s`;
+  setTimeout(() => line.style.opacity = '1', 100 + i * 60);
+});
+
+// ─── terminal interativo ───────────────────────────────
+const output  = document.getElementById('term-output');
+const input   = document.getElementById('term-input');
+const now     = () => new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+
+const responses = {
+  hardware: () => `
+<div><span class="t-g1">  Mapeando hardware</span> <span class="t-dim">............</span> <span class="t-g">done</span></div>
+<br>
+<div><span class="t-dim">  | OK  CPU             </span><span class="t-g">Intel Core i5-10400 -- 6 Cores</span></div>
+<div><span class="t-dim">  | OK  Mobo            </span><span class="t-g">Dell Inc. 0Y7WYT</span></div>
+<div><span class="t-dim">  | OK  Slot DIMM A1    </span><span class="t-g">8GB @ 2666MHz</span></div>
+<div><span class="t-dim">  | OK  Slot DIMM A2    </span><span class="t-g">8GB @ 2666MHz</span></div>
+<div><span class="t-dim">  | OK  GPU             </span><span class="t-g">Intel UHD Graphics 630</span></div>
+<div><span class="t-dim">  | OK  C: [SSD] 238GB  </span><span class="t-g">89.4 GB livres (37%)</span></div>
+<div><span class="t-dim">  | WRN D: [HDD] 931GB  </span><span class="t-y">16.2 GB livres (2%) — ATENÇÃO</span></div>`,
+
+  rede: () => `
+<div><span class="t-c1">  Testando conectividade</span> <span class="t-dim">........</span> <span class="t-g">done</span></div>
+<br>
+<div><span class="t-dim">  | >>  IP Privado      </span><span class="t-c">192.168.0.45</span></div>
+<div><span class="t-dim">  | >>  DHCP             </span><span class="t-c">Ativo</span></div>
+<div><span class="t-dim">  | >>  DNS              </span><span class="t-c">8.8.8.8, 8.8.4.4</span></div>
+<div><span class="t-dim">  | OK  Gateway         </span><span class="t-g">Respondendo (192.168.0.1)</span></div>
+<div><span class="t-dim">  | OK  Internet        </span><span class="t-g">Online</span></div>
+<div><span class="t-dim">  | OK  IP Publico      </span><span class="t-g">189.x.x.x</span></div>
+<div><span class="t-dim">  | OK  Provedor        </span><span class="t-g">Claro S.A.</span></div>
+<div><span class="t-dim">  | OK  Ping            </span><span class="t-g">18 ms</span></div>`,
+
+  ram: () => `
+<div><span class="t-g1">  Analisando RAM</span> <span class="t-dim">.................</span> <span class="t-g">done</span></div>
+<br>
+<div><span class="t-dim">  | >>  RAM Total       </span><span class="t-c">16 GB</span></div>
+<div><span class="t-dim">  | WRN RAM em uso      </span><span class="t-y">78% (12.4 GB)</span></div>
+<div><span class="t-dim">  | >>  Processos chrome</span><span class="t-c">14 processos / 2.1 GB</span></div>
+<br>
+<div><span class="t-y">  [WRN] Chrome ocupando 2.1GB. Limpeza cirurgica disponivel.</span></div>`,
+
+  impressora: () => `
+<div><span class="t-y1">  Lendo impressoras</span> <span class="t-dim">...............</span> <span class="t-g">done</span></div>
+<br>
+<div><span class="t-dim">  | OK  HP LaserJet P1102w    </span><span class="t-g">Normal | 0 jobs</span></div>
+<div><span class="t-dim">  | WRN HP DeskJet 2700       </span><span class="t-y">Offline | 3 jobs presos</span></div>
+<div><span class="t-dim">  | >>  IP (HP DeskJet)       </span><span class="t-c">192.168.0.20 -- porta 9100</span></div>
+<br>
+<div><span class="t-y">  [WRN] HP DeskJet offline com fila travada. Use o menu para limpar.</span></div>`,
+
+  sfc: () => `
+<div><span class="t-r">  Iniciando reparo do Windows</span> <span class="t-dim">.....</span></div>
+<br>
+<div><span class="t-dim">  | >>  DISM RestoreHealth    </span><span class="t-y">em andamento... (~10 min)</span></div>
+<div><span class="t-dim">  | OK  DISM                 </span><span class="t-g">Concluido com sucesso</span></div>
+<div><span class="t-dim">  | OK  SFC Scannow          </span><span class="t-g">Nenhuma violacao encontrada</span></div>
+<div><span class="t-dim">  | OK  WinSxS Cleanup       </span><span class="t-g">Limpeza concluida</span></div>
+<br>
+<div><span class="t-c">  Reinicie o computador para aplicar as correcoes.</span></div>`,
+
+  limpeza: () => `
+<div><span class="t-m">  Calculando arquivos temp</span> <span class="t-dim">........</span> <span class="t-g">done</span></div>
+<br>
+<div><span class="t-dim">  | WRN %TEMP% usuario   </span><span class="t-y">1.24 GB em arquivos temporarios</span></div>
+<div><span class="t-dim">  | WRN C:\Windows\Temp   </span><span class="t-y">340 MB</span></div>
+<div><span class="t-dim">  | >>  Prefetch          </span><span class="t-c">88 MB</span></div>
+<br>
+<div><span class="t-g">  Total estimado a liberar: 1.67 GB</span></div>`,
+
+  speedtest: () => `
+<div><span class="t-c">  Iniciando Ookla Speedtest CLI</span></div>
+<div><span class="t-dim">  Servidor: Vivo SP -- ${Math.floor(Math.random()*30+10)} km</span></div>
+<br>
+<div><span class="t-dim">  [####################] 100%</span></div>
+<br>
+<div><span class="t-dim">  | OK  Ping      </span><span class="t-g">${Math.floor(Math.random()*20+8)} ms</span></div>
+<div><span class="t-dim">  | OK  Download  </span><span class="t-g">${Math.floor(Math.random()*150+50)}.${Math.floor(Math.random()*9)} Mbps</span></div>
+<div><span class="t-dim">  | OK  Upload    </span><span class="t-g">${Math.floor(Math.random()*50+20)}.${Math.floor(Math.random()*9)} Mbps</span></div>`,
+
+  ajuda: () => `
+<div><span class="t-g">  Comandos disponíveis nesta demo:</span></div>
+<br>
+<div><span class="t-c">  hardware   </span><span class="t-dim">→ diagnóstico de CPU, RAM, disco, GPU</span></div>
+<div><span class="t-c">  rede       </span><span class="t-dim">→ IP, DNS, ping, IP público</span></div>
+<div><span class="t-c">  ram        </span><span class="t-dim">→ uso de memória e processos</span></div>
+<div><span class="t-c">  impressora </span><span class="t-dim">→ status e fila de impressoras</span></div>
+<div><span class="t-c">  sfc        </span><span class="t-dim">→ reparo de arquivos do Windows</span></div>
+<div><span class="t-c">  limpeza    </span><span class="t-dim">→ arquivos temporários</span></div>
+<div><span class="t-c">  speedtest  </span><span class="t-dim">→ teste de velocidade Ookla</span></div>`,
+};
+
+function appendToTerminal(html, delay = 0) {
+  setTimeout(() => {
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    output.appendChild(div);
+    output.scrollTop = output.scrollHeight;
+  }, delay);
+}
+
+function runCommand(cmd) {
+  const clean = cmd.trim().toLowerCase();
+
+  // echo do comando
+  appendToTerminal(`<div><span class="t-dim">PS C:\\QuickFIX&gt;</span> <span class="t-w">${cmd}</span></div>`);
+
+  if (responses[clean]) {
+    // simula processamento
+    appendToTerminal(`<div><span class="t-dim">  aguarde...</span></div>`, 150);
+    setTimeout(() => {
+      // remove "aguarde..."
+      const lines = output.querySelectorAll('div');
+      const last = lines[lines.length - 1];
+      if (last && last.textContent.includes('aguarde')) last.remove();
+      appendToTerminal(responses[clean]());
+      appendToTerminal('<br>');
+    }, 700);
+  } else if (clean === '') {
+    return;
+  } else {
+    appendToTerminal(`<div><span class="t-r">  comando nao reconhecido: "${cmd}"</span></div>`, 100);
+    appendToTerminal(`<div><span class="t-dim">  tente: </span><span class="t-c">ajuda</span></div>`, 200);
+    appendToTerminal('<br>', 300);
+  }
+
+  input.value = '';
+}
+
+input.addEventListener('keydown', e => {
+  if (e.key === 'Enter') runCommand(input.value);
+});
+
+document.querySelectorAll('.hint-pill').forEach(pill => {
+  pill.addEventListener('click', () => {
+    input.value = pill.dataset.cmd;
+    runCommand(pill.dataset.cmd);
+    input.focus();
+  });
+});
+
+// ─── tabs ──────────────────────────────────────────────
+function switchTab(i) {
+  document.querySelectorAll('.tab-btn').forEach((b, j) => b.classList.toggle('active', i === j));
+  document.querySelectorAll('.tab-panel').forEach((p, j) => p.classList.toggle('active', i === j));
+}
+
+// ─── copy ──────────────────────────────────────────────
+function copyCode(btn) {
+  const block = btn.closest('.code-block');
+  const text  = block.innerText.replace('copiar\n', '').replace('copiado!\n', '').trim();
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'copiado!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'copiar'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+</script>
+</body>
+</html>
